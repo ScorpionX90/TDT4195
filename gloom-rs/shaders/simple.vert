@@ -5,7 +5,7 @@ layout(location=1) in vec4 vertex_colors;
 out vec4 fragment_colors;
 
 // this matrix mirrors over the x-axis and the y-axis simultaneously
-uniform mat4 flip = mat4(
+const mat4 flip = mat4(
     vec4(-1.0f,  0.0f,  0.0f,  0.0f),  // column 0
     vec4( 0.0f, -1.0f,  0.0f,  0.0f),  // column 1
     vec4( 0.0f,  0.0f,  1.0f,  0.0f),  // column 2
