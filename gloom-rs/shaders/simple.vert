@@ -1,6 +1,8 @@
 #version 410 core
 
-in vec3 position;
+layout(location=0) in vec3 position;
+layout(location=1) in vec4 vertex_colors;
+out vec4 fragment_colors;
 
 // this matrix mirrors over the x-axis and the y-axis simultaneously
 uniform mat4 flip = mat4(
@@ -13,4 +15,5 @@ uniform mat4 flip = mat4(
 void main()
 {
     gl_Position = flip * vec4(position, 1.0f);
+    fragment_colors = vertex_colors;
 }
