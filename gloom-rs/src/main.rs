@@ -54,34 +54,42 @@ fn offset<T>(n: u32) -> *const c_void {
 
 // == // Generate your VAO here
 unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>) -> u32 {
+    // generate a VAO and bind it
+    let mut vao_id: u32 = 0;
+    gl::GenVertexArrays(1, &mut vao_id);
+    gl::BindVertexArray(vao_id);
 
-    let mut vao: u32 = 0;
-    gl::GenVertexArrays(1, &mut vao as *mut u32);
-    gl::BindVertexArray(vao);
+    // generate a VBO and bind it
+    let mut vbo_id: u32 = 0;
+    gl::GenBuffers(1, &mut vbo_id);
+    gl::BindBuffer(gl::ARRAY_BUFFER, vbo_id);
 
-    let mut vbo: u32 = 0;
-    gl::GenBuffers(1, &mut vbo as *mut u32);
-    gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-
-    gl::BufferData(gl::ARRAY_BUFFER, byte_size_of_array(vertices), pointer_to_array(vertices), gl::STATIC_DRAW);
-
-    gl::VertexAttribPointer(
-        0,
-        3,
-        gl::FLOAT,
-        gl::FALSE,
-        size_of::<f32>() * 3,
-        ptr::null()
+    // fill it with data
+    gl::BufferData(
+        gl::ARRAY_BUFFER, 
+        byte_size_of_array(vertices),
+        pointer_to_array(vertices), 
+        gl::STATIC_DRAW
     );
+
+    // configure a VAP for the data and enable it
+    gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, size_of::<f32>()*3, ptr::null());
     gl::EnableVertexAttribArray(0);
 
-    let mut ibo = 0;
-    gl::GenBuffers(1, &mut ibo as *mut u32);
-    gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ibo);
+    // generate a IBO and bind it
+    let mut ibo_id: u32 = 0;
+    gl::GenBuffers(1, &mut ibo_id);
+    gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ibo_id);
 
-    gl::BufferData(gl::ELEMENT_ARRAY_BUFFER, byte_size_of_array(indices), pointer_to_array(indices), gl::STATIC_DRAW);
+    // fill it with data
+    gl::BufferData(
+        gl::ELEMENT_ARRAY_BUFFER, 
+        byte_size_of_array(indices), 
+        pointer_to_array(indices), 
+        gl::STATIC_DRAW
+    );
 
-    return vao;
+    return vao_id;
 }
 
 
@@ -145,7 +153,7 @@ fn main() {
         }
 
         // == // Set up your VAO around here
-        let verticiesVec: Vec<f32> = vec![
+        let vertices = vec![
             // Triangle 1
             -0.9, -0.9, 0.0,
             -0.7, -0.9, 0.0,
@@ -172,7 +180,7 @@ fn main() {
             0.5,  0.9, 0.0,
         ];
 
-        let indexVec: Vec<u32> = vec![
+        let indices = vec![
             0,1,2,
             3,4,5,
             6,7,8,
@@ -180,7 +188,7 @@ fn main() {
             12,13,14
         ];
 
-        let my_vao = unsafe {create_vao(&verticiesVec, &indexVec)};
+        let vao_id = unsafe { create_vao(&vertices, &indices) };
 
 
         // == // Set up your shaders here
@@ -198,10 +206,6 @@ fn main() {
                 .attach_file("./shaders/simple.frag")
                 .link()
         };
-
-        unsafe{
-            gl::UseProgram(simple_shader.program_id);
-        }
 
         // Used to demonstrate keyboard handling for exercise 2.
         let mut _arbitrary_number = 0.0; // feel free to remove
@@ -261,15 +265,13 @@ fn main() {
 
 
             unsafe {
+                simple_shader.activate();
+
                 // Clear the color and depth buffers
                 gl::ClearColor(0.035, 0.046, 0.078, 1.0); // night sky
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-
-                // == // Issue the necessary gl:: commands to draw your scene here
-
-                gl::DrawElements(gl::TRIANGLES, indexVec.len() as i32, gl::UNSIGNED_INT, ptr::null());
-
+                gl::DrawElements(gl::TRIANGLES, indices.len() as i32, gl::UNSIGNED_INT, ptr::null());
             }
 
             // Display the new color buffer on the display
