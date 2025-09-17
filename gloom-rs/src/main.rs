@@ -217,6 +217,7 @@ fn main() {
         let vao_id = unsafe { create_vao(&vertices, &indices, &colors) };
 
 
+
         // == // Set up your shaders here
 
         // Basic usage of shader helper:
@@ -296,7 +297,9 @@ fn main() {
                 // Clear the color and depth buffers
                 gl::ClearColor(0.035, 0.046, 0.078, 1.0); // night sky
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-
+                
+                let loc = simple_shader.get_uniform_location("elapsed");
+                gl::Uniform1f(loc, elapsed.sin());
                 gl::DrawElements(gl::TRIANGLES, indices.len() as i32, gl::UNSIGNED_INT, ptr::null());
             }
 

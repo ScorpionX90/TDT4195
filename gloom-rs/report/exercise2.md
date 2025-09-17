@@ -40,3 +40,6 @@ OpenGL does a simple interpolation between the vertex colors, and assigns a colo
 ![](./images/transparent_triangles.png)
 
 Here we have drawn three partially overlapping triangles drawn in the order "red - green - blue" with red having the highest z-index (furthest back), followed by green and finally blue. All triangles are rendered with alpha = 0.4
+
+TODO TASK 2B)
+
