@@ -15,6 +15,7 @@ use std::sync::{Mutex, Arc, RwLock};
 mod shader;
 mod util;
 
+use glm::{mat4, pi};
 use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState::{Pressed, Released}, VirtualKeyCode::{self, *}};
 use glutin::event_loop::ControlFlow;
 
@@ -181,19 +182,19 @@ fn main() {
         // == // Set up your VAO around here
         let vertices = vec![
             //Triangle 1
-             0.8,  0.2, 0.6,
-            -0.2,  0.2, 0.6,
-             0.3, -0.8, 0.6,
+             0.8,  0.2, -1.6,
+            -0.2,  0.2, -1.6,
+             0.3, -0.8, -1.6,
 
             // // Triangle 2
-            -0.8,  0.2, 0.4,
-            -0.3, -0.8, 0.4,
-             0.2,  0.2, 0.4,
+            -0.8,  0.2, -1.4,
+            -0.3, -0.8, -1.4,
+             0.2,  0.2, -1.4,
 
             // // Triangle 3
-             0.0, -0.2, 0.2,
-             0.5, 0.8, 0.2,
-            -0.5, 0.8, 0.2,
+             0.0, -0.2, -1.2,
+             0.5, 0.8, -1.2,
+            -0.5, 0.8, -1.2,
         ];
 
         let indices = vec![
@@ -214,9 +215,18 @@ fn main() {
             0.0, 0.0, 1.0, 0.5,
         ];
 
+        
+        
+        let mut transformation: glm::Mat4 = glm::identity();
+        let perspective: glm::Mat4 = glm::perspective(
+            window_aspect_ratio,
+            120.0f32,
+            1.0f32,
+            100.0f32
+        );
         let vao_id = unsafe { create_vao(&vertices, &indices, &colors) };
 
-
+        transformation *= perspective;
 
         // == // Set up your shaders here
 
@@ -298,8 +308,9 @@ fn main() {
                 gl::ClearColor(0.035, 0.046, 0.078, 1.0); // night sky
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
                 
-                let loc = simple_shader.get_uniform_location("elapsed");
-                gl::Uniform1f(loc, elapsed.sin());
+                let loc = simple_shader.get_uniform_location("transform");
+                let ptr = transformation.as_ptr() as *const gl::types::GLfloat;
+                gl::UniformMatrix4fv(loc, 1, gl::FALSE, ptr);
                 gl::DrawElements(gl::TRIANGLES, indices.len() as i32, gl::UNSIGNED_INT, ptr::null());
             }
 
