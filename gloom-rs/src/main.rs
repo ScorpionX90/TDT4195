@@ -123,6 +123,7 @@ fn main() {
     let el = glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new()
         .with_title("Gloom-rs")
+        .with_transparent(false)
         .with_resizable(true)
         .with_inner_size(glutin::dpi::LogicalSize::new(INITIAL_SCREEN_W, INITIAL_SCREEN_H));
     let cb = glutin::ContextBuilder::new()
@@ -180,35 +181,37 @@ fn main() {
         // == // Set up your VAO around here
         let vertices = vec![
             //Triangle 1
-             0.8,  0.2, 0.2,
-            -0.2,  0.2, 0.2,
-             0.3, -0.8, 0.2,
+             0.8,  0.2, 0.6,
+            -0.2,  0.2, 0.6,
+             0.3, -0.8, 0.6,
 
             // // Triangle 2
-            -0.8,  0.2, 0.2,
-             0.2,  0.2, 0.2,
-            -0.3, -0.8, 0.2,
+            -0.8,  0.2, 0.4,
+            -0.3, -0.8, 0.4,
+             0.2,  0.2, 0.4,
 
             // // Triangle 3
-            // 0.5, 0.0, 0.0,
-            // 0.0, -0.9, 0.0,
-            // 0.6, -0.9, 0.0,
+             0.0, -0.2, 0.2,
+             0.5, 0.8, 0.2,
+            -0.5, 0.8, 0.2,
         ];
 
         let indices = vec![
-            0,1,2
+            0,1,2,
+            3,4,5,
+            6,7,8
         ];
 
         let colors = vec![
-            1.0, 0.0, 0.0, 0.4,
-            1.0, 0.0, 0.0, 0.4,
-            1.0, 0.0, 0.0, 0.4,
-            0.0, 1.0, 0.0, 0.4,
-            0.0, 1.0, 0.0, 0.4,
-            0.0, 1.0, 0.0, 0.4,
-            0.0, 0.0, 1.0, 0.4,
-            0.0, 0.0, 1.0, 0.4,
-            0.0, 0.0, 1.0, 0.4,
+            1.0, 0.0, 0.0, 0.5,
+            1.0, 0.0, 0.0, 0.5,
+            1.0, 0.0, 0.0, 0.5,
+            0.0, 1.0, 0.0, 0.5,
+            0.0, 1.0, 0.0, 0.5,
+            0.0, 1.0, 0.0, 0.5,
+            0.0, 0.0, 1.0, 0.5,
+            0.0, 0.0, 1.0, 0.5,
+            0.0, 0.0, 1.0, 0.5,
         ];
 
         let vao_id = unsafe { create_vao(&vertices, &indices, &colors) };

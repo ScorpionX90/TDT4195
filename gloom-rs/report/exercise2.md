@@ -33,3 +33,10 @@ This task was already implemented as part of exercise 1. But for ease of access 
 
 OpenGL does a simple interpolation between the vertex colors, and assigns a color to a pixel during shading based on a weighted blend of the vertex colors based on how close the location of a pixel is to the vertices of the fragment. All weights should add up to 1, resulting in a varying mix of all the vertex colors at any given point in the fragment. In other words it does a simple linear interpolation.
 
+## Task 2)
+
+# a) Transparent triangles
+
+![](./images/transparent_triangles.png)
+
+Here we have drawn three partially overlapping triangles drawn in the order "red - green - blue" with red having the highest z-index (furthest back), followed by green and finally blue. All triangles are rendered with alpha = 0.4
