@@ -222,7 +222,7 @@ fn main() {
         let vao_id = unsafe { create_vao(&vertices, &indices, &colors) };
         
         
-        let mut transformation: glm::Mat4 = glm::identity();
+        let mut transformation: glm::Mat4;
         let perspective: glm::Mat4 = glm::perspective(
             window_aspect_ratio,
             120.0f32,
@@ -278,54 +278,54 @@ fn main() {
                 }
             }
 
-            // magic
-            let a = glm::vec3(-yaw.sin(), yaw.cos(), 0.0);
-            let b = glm::rotation2d(glm::half_pi()) * a;
+            // Calculate forward vector, and right vector in x-z plane for relative yaw based translation.
+            let f_xz = glm::vec3(-yaw.sin(), yaw.cos(), 0.0);
+            let r_xz = glm::rotation2d(glm::half_pi()) * f_xz;
 
-            let forward = glm::vec3(a.x, a.z, a.y);
-            let right = glm::vec3(b.x, b.z, b.y);
+            let forward = glm::vec3(f_xz.x, f_xz.z, f_xz.y);
+            let right = glm::vec3(r_xz.x, r_xz.z, r_xz.y);
             // Handle keyboard input
             if let Ok(keys) = pressed_keys.lock() {
                 for key in keys.iter() {
                     match key {
-                        VirtualKeyCode::D => { 
-                            camera_position -= right * translation_speed * delta_time;
+                        VirtualKeyCode::W => { 
+                            camera_position += forward * trans_speed;
                         }
                         VirtualKeyCode::A => { 
-                            camera_position += right * translation_speed * delta_time;
+                            camera_position -= right * trans_speed;
                         }
                         VirtualKeyCode::S => { 
-                            camera_position += forward * translation_speed * delta_time;
+                            camera_position -= forward * trans_speed;
                         }
-                        VirtualKeyCode::W => { 
-                            camera_position -= forward * translation_speed * delta_time;
+                        VirtualKeyCode::D => { 
+                            camera_position += right * trans_speed;
                         }
                         VirtualKeyCode::Space => { 
-                            camera_position.y += translation_speed * delta_time;
+                            camera_position.y -= trans_speed;
                         }
                         VirtualKeyCode::LShift => { 
-                            camera_position.y -= translation_speed * delta_time;
+                            camera_position.y = trans_speed;
                         }
 
                         VirtualKeyCode::Down => { 
-                            pitch += rotation_speed * delta_time;
+                            pitch += angle_speed;
                             pitch = pitch.clamp(
-                                -std::f32::consts::FRAC_PI_2 + 0.01,
-                                std::f32::consts::FRAC_PI_2 - 0.01
+                                -std::f32::consts::FRAC_PI_4,
+                                std::f32::consts::FRAC_PI_4
                             );
                         }
                         VirtualKeyCode::Up => { 
-                            pitch -= rotation_speed * delta_time;
+                            pitch -= angle_speed;
                             pitch = pitch.clamp(
-                                -std::f32::consts::FRAC_PI_2 + 0.01,
-                                std::f32::consts::FRAC_PI_2 - 0.01
+                                -std::f32::consts::FRAC_PI_4,
+                                std::f32::consts::FRAC_PI_4
                             );
                         }
                         VirtualKeyCode::Right => { 
-                            yaw += rotation_speed * delta_time;
+                            yaw += angle_speed;
                         }
                         VirtualKeyCode::Left => { 
-                            yaw -= rotation_speed * delta_time;
+                            yaw -= angle_speed;
                         }
 
                         _ => { }
@@ -341,11 +341,12 @@ fn main() {
                 *delta = (0.0, 0.0); // reset when done
             }
 
-            // Build view matrix - keep your original approach
             let yaw_matrix = glm::rotation(yaw, &glm::vec3(0.0, 1.0, 0.0));
             let pitch_matrix = glm::rotation(pitch, &glm::vec3(1.0, 0.0, 0.0));
+            let translation_matrix = glm::translation(&(camera_position));
+            
+            // apply yaw dependent pitch first.
             let rotation_matrix = pitch_matrix * yaw_matrix;
-            let translation_matrix = glm::translation(&(-camera_position));
             transformation = rotation_matrix * translation_matrix;
 
             unsafe {
@@ -356,6 +357,7 @@ fn main() {
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
                 
                 let loc = simple_shader.get_uniform_location("transform");
+                // Apply perspective transformation last
                 let ptr = (perspective * transformation).as_ptr() as *const gl::types::GLfloat;
                 gl::UniformMatrix4fv(loc, 1, gl::FALSE, ptr);
                 gl::DrawElements(gl::TRIANGLES, indices.len() as i32, gl::UNSIGNED_INT, ptr::null());
