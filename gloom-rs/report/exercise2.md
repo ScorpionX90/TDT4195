@@ -89,7 +89,8 @@ together, it is impossible to observe rotational transformations from only
 changing one value at a time, starting from the identity matrix.
 
 
-## Bonus task a) is implemented in code
+## Bonus task a)
+Implemented in code. Note that we have only made translation relative to the yaw of camera, and not the tilt. This is done as a preference from our side.
 
 ## Bonus task b)
 
