@@ -89,6 +89,8 @@ together, it is impossible to observe rotational transformations from only
 changing one value at a time, starting from the identity matrix.
 
 
+## Bonus task a) is implemented in code
+
 ## Bonus task b)
 
 Applying some perspective to our scene, we see that the smooth interolation qualifier yields a color interpolation which is corrected in terms of perspective. In the below image you can clearly see how the colors are shifted between the smooth and noperspective interpolation models:

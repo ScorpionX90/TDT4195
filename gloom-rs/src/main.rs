@@ -199,8 +199,11 @@ fn main() {
 
         let indices = vec![
             0,1,2,
+            0,2,1,
             3,4,5,
-            6,7,8
+            3,5,4,
+            6,7,8,
+            6,8,7
         ];
 
         let colors = vec![
@@ -292,21 +295,18 @@ fn main() {
 
                         VirtualKeyCode::Up => { 
                             tilt_transform = glm::rotation(-angle_speed, 
-                                &glm::vec3(0.0, 1.0, 0.0).cross(&cam_direction));
+                                &glm::vec3(1.0, 0.0, 0.0));
                         }
                         VirtualKeyCode::Down => { 
                             tilt_transform = glm::rotation(angle_speed, 
-                                &glm::vec3(0.0, 1.0, 0.0).cross(&cam_direction));
+                                &glm::vec3(1.0, 0.0, 0.0));
                         }
                         VirtualKeyCode::Left => { 
                             yaw_transform = glm::rotation(-angle_speed, &glm::vec3(0.0, 1.0, 0.0));
-                            cam_direction = glm::rotate_vec3(
-                                &cam_direction, -angle_speed, &glm::vec3(0.0, 1.0, 0.0));
+
                         }
                         VirtualKeyCode::Right => { 
                             yaw_transform = glm::rotation(angle_speed, &glm::vec3(0.0, 1.0, 0.0));
-                            cam_direction = glm::rotate_vec3(
-                                &cam_direction, angle_speed, &glm::vec3(0.0, 1.0, 0.0));
                         }
 
                         // default handler:
@@ -325,10 +325,10 @@ fn main() {
 
             // == // Please compute camera transforms here (exercise 2 & 3)
             motion_transform = glm::identity();
-            motion_transform *= glm::translate(&motion_transform, &camera_motion);
-            motion_transform *= yaw_transform;
-            motion_transform *= tilt_transform;
-            transformation = motion_transform * transformation;
+            motion_transform *= tilt_transform;             // local tilt
+            motion_transform *= glm::translate(&glm::identity(), &camera_motion); // move in world space
+            transformation = yaw_transform * motion_transform * transformation;
+
             
             // Reset frame transforms
             camera_motion = glm::vec3(0.0, 0.0, 0.0);
