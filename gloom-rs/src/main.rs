@@ -15,9 +15,10 @@ use std::sync::{Mutex, Arc, RwLock};
 mod shader;
 mod util;
 
-use glm::{mat4, pi};
+use glm::{mat4, pi, transpose};
 use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState::{Pressed, Released}, VirtualKeyCode::{self, *}};
 use glutin::event_loop::ControlFlow;
+use libc::CTRL_ATTR_MCAST_GRP_NAME;
 
 // initial window size
 const INITIAL_SCREEN_W: u32 = 800;
@@ -229,15 +230,13 @@ fn main() {
             100.0f32
         );
 
-        let mut camera_motion: glm::Vec3 = glm::vec3(0.0, 0.0, 0.0);
-        let mut cam_direction: glm::Vec3 = glm::vec3(0.0, 0.0, 1.0);
-        
-        let mut yaw_transform: glm::Mat4 = glm::identity();
-        let mut tilt_transform: glm::Mat4 = glm::identity();
-        let mut motion_transform;
-        
-        let rotation_speed = 1.0f32;
+        let mut camera_position: glm::Vec3 = glm::vec3(0.0, 0.0, 0.0);
         let translation_speed = 3.0f32;
+        let rotation_speed = 3.0f32;
+
+        let mut yaw = 0.0f32;
+        let mut pitch = 0.0f32;
+
         // == // Set up your shaders here
 
         // Basic usage of shader helper:
@@ -283,33 +282,54 @@ fn main() {
             if let Ok(keys) = pressed_keys.lock() {
                 for key in keys.iter() {
                     match key {
-                        // The `VirtualKeyCode` enum is defined here:
-                        //    https://docs.rs/winit/0.25.0/winit/event/enum.VirtualKeyCode.html
-
-                        VirtualKeyCode::A => { camera_motion.x += trans_speed; }
-                        VirtualKeyCode::D => { camera_motion.x += -trans_speed; }
-                        VirtualKeyCode::W => { camera_motion.z += trans_speed; }
-                        VirtualKeyCode::S => { camera_motion.z += -trans_speed; }
-                        VirtualKeyCode::Space => { camera_motion.y += -trans_speed; }
-                        VirtualKeyCode::LShift => { camera_motion.y += trans_speed; }
-
-                        VirtualKeyCode::Up => { 
-                            tilt_transform = glm::rotation(-angle_speed, 
-                                &glm::vec3(1.0, 0.0, 0.0));
+                        VirtualKeyCode::W => { 
+                            // Move left relative to camera
+                            let right = glm::vec3(-yaw.sin(), 0.0, yaw.cos());
+                            camera_position -= right * translation_speed * delta_time;
                         }
+                        VirtualKeyCode::S => { 
+                            // Move right relative to camera
+                            let right = glm::vec3(-yaw.sin(), 0.0, yaw.cos());
+                            camera_position += right * translation_speed * delta_time;
+                        }
+                        VirtualKeyCode::A => { 
+                            // Move left relative to camera
+                            let right = glm::vec3(yaw.sin(), 0.0, yaw.cos());
+                            camera_position -= right * translation_speed * delta_time;
+                        }
+                        VirtualKeyCode::D => { 
+                            // Move right relative to camera
+                            let right = glm::vec3(yaw.sin(), 0.0, yaw.cos());
+                            camera_position += right * translation_speed * delta_time;
+                        }
+                        VirtualKeyCode::Space => { 
+                            camera_position.y += translation_speed * delta_time;
+                        }
+                        VirtualKeyCode::LShift => { 
+                            camera_position.y -= translation_speed * delta_time;
+                        }
+
                         VirtualKeyCode::Down => { 
-                            tilt_transform = glm::rotation(angle_speed, 
-                                &glm::vec3(1.0, 0.0, 0.0));
+                            pitch += rotation_speed * delta_time;
+                            pitch = pitch.clamp(
+                                -std::f32::consts::FRAC_PI_2 + 0.01,
+                                std::f32::consts::FRAC_PI_2 - 0.01
+                            );
                         }
-                        VirtualKeyCode::Left => { 
-                            yaw_transform = glm::rotation(-angle_speed, &glm::vec3(0.0, 1.0, 0.0));
-
+                        VirtualKeyCode::Up => { 
+                            pitch -= rotation_speed * delta_time;
+                            pitch = pitch.clamp(
+                                -std::f32::consts::FRAC_PI_2 + 0.01,
+                                std::f32::consts::FRAC_PI_2 - 0.01
+                            );
                         }
                         VirtualKeyCode::Right => { 
-                            yaw_transform = glm::rotation(angle_speed, &glm::vec3(0.0, 1.0, 0.0));
+                            yaw += rotation_speed * delta_time;
+                        }
+                        VirtualKeyCode::Left => { 
+                            yaw -= rotation_speed * delta_time;
                         }
 
-                        // default handler:
                         _ => { }
                     }
                 }
@@ -323,18 +343,12 @@ fn main() {
                 *delta = (0.0, 0.0); // reset when done
             }
 
-            // == // Please compute camera transforms here (exercise 2 & 3)
-            motion_transform = glm::identity();
-            motion_transform *= tilt_transform;             // local tilt
-            motion_transform *= glm::translate(&glm::identity(), &camera_motion); // move in world space
-            transformation = yaw_transform * motion_transform * transformation;
-
-            
-            // Reset frame transforms
-            camera_motion = glm::vec3(0.0, 0.0, 0.0);
-            yaw_transform = glm::identity();
-            tilt_transform = glm::identity();
-
+            // Build view matrix - keep your original approach
+            let yaw_matrix = glm::rotation(yaw, &glm::vec3(0.0, 1.0, 0.0));
+            let pitch_matrix = glm::rotation(pitch, &glm::vec3(1.0, 0.0, 0.0));
+            let rotation_matrix = pitch_matrix * yaw_matrix;
+            let translation_matrix = glm::translation(&(-camera_position));
+            transformation = rotation_matrix * translation_matrix;
 
             unsafe {
                 simple_shader.activate();
