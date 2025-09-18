@@ -232,7 +232,7 @@ fn main() {
 
         let mut camera_position: glm::Vec3 = glm::vec3(0.0, 0.0, 0.0);
         let translation_speed = 3.0f32;
-        let rotation_speed = 3.0f32;
+        let rotation_speed = 1.5f32;
 
         let mut yaw = 0.0f32;
         let mut pitch = 0.0f32;
@@ -278,29 +278,27 @@ fn main() {
                 }
             }
 
+            // magic
+            let a = glm::vec3(-yaw.sin(), yaw.cos(), 0.0);
+            let b = glm::rotation2d(glm::half_pi()) * a;
+
+            let forward = glm::vec3(a.x, a.z, a.y);
+            let right = glm::vec3(b.x, b.z, b.y);
             // Handle keyboard input
             if let Ok(keys) = pressed_keys.lock() {
                 for key in keys.iter() {
                     match key {
-                        VirtualKeyCode::W => { 
-                            // Move left relative to camera
-                            let right = glm::vec3(-yaw.sin(), 0.0, yaw.cos());
+                        VirtualKeyCode::D => { 
                             camera_position -= right * translation_speed * delta_time;
-                        }
-                        VirtualKeyCode::S => { 
-                            // Move right relative to camera
-                            let right = glm::vec3(-yaw.sin(), 0.0, yaw.cos());
-                            camera_position += right * translation_speed * delta_time;
                         }
                         VirtualKeyCode::A => { 
-                            // Move left relative to camera
-                            let right = glm::vec3(yaw.sin(), 0.0, yaw.cos());
-                            camera_position -= right * translation_speed * delta_time;
-                        }
-                        VirtualKeyCode::D => { 
-                            // Move right relative to camera
-                            let right = glm::vec3(yaw.sin(), 0.0, yaw.cos());
                             camera_position += right * translation_speed * delta_time;
+                        }
+                        VirtualKeyCode::S => { 
+                            camera_position += forward * translation_speed * delta_time;
+                        }
+                        VirtualKeyCode::W => { 
+                            camera_position -= forward * translation_speed * delta_time;
                         }
                         VirtualKeyCode::Space => { 
                             camera_position.y += translation_speed * delta_time;
