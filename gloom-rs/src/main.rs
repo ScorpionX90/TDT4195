@@ -182,14 +182,14 @@ fn main() {
         // == // Set up your VAO around here
         let vertices = vec![
             //Triangle 1
-             0.8,  0.2, -1.6,
-            -0.2,  0.2, -1.6,
-             0.3, -0.8, -1.6,
+             0.8,  0.2, -5.6,
+            -0.2,  0.2, -5.6,
+             0.3, -0.8, -5.6,
 
             // // Triangle 2
-            -0.8,  0.2, -1.4,
-            -0.3, -0.8, -1.4,
-             0.2,  0.2, -1.4,
+            -0.8,  0.2, -3.4,
+            -0.3, -0.8, -3.4,
+             0.2,  0.2, -3.4,
 
             // // Triangle 3
              0.0, -0.2, -1.2,
@@ -215,6 +215,7 @@ fn main() {
             0.0, 0.0, 1.0, 0.5,
         ];
 
+        let vao_id = unsafe { create_vao(&vertices, &indices, &colors) };
         
         
         let mut transformation: glm::Mat4 = glm::identity();
@@ -224,9 +225,14 @@ fn main() {
             1.0f32,
             100.0f32
         );
-        let vao_id = unsafe { create_vao(&vertices, &indices, &colors) };
 
-        transformation *= perspective;
+        let mut camera_motion: glm::Vec3 = glm::vec3(0.0, 0.0, 0.0);
+        let translation_speed = 3.0f32;
+        let mut camera_direction: glm::Vec3 = glm::vec3(0.0, 0.0, 1.0);
+        let rotation_speed = 1.0f32;
+        let mut yaw_transform: glm::Mat4 = glm::identity();
+        let mut tilt_transform: glm::Mat4 = glm::identity();
+        let mut motion_transform: glm::Mat4 = glm::identity();
 
         // == // Set up your shaders here
 
@@ -243,9 +249,6 @@ fn main() {
                 .attach_file("./shaders/simple.frag")
                 .link()
         };
-
-        // Used to demonstrate keyboard handling for exercise 2.
-        let mut _arbitrary_number = 0.0; // feel free to remove
 
 
         // The main rendering loop
@@ -276,13 +279,37 @@ fn main() {
                         // The `VirtualKeyCode` enum is defined here:
                         //    https://docs.rs/winit/0.25.0/winit/event/enum.VirtualKeyCode.html
 
-                        VirtualKeyCode::A => {
-                            _arbitrary_number += delta_time;
-                        }
-                        VirtualKeyCode::D => {
-                            _arbitrary_number -= delta_time;
-                        }
+                        VirtualKeyCode::A => { camera_motion.x += translation_speed*delta_time; }
+                        VirtualKeyCode::D => { camera_motion.x += -translation_speed*delta_time; }
+                        VirtualKeyCode::W => { camera_motion.z += translation_speed*delta_time; }
+                        VirtualKeyCode::S => { camera_motion.z += -translation_speed*delta_time; }
+                        VirtualKeyCode::Space => { camera_motion.y += -translation_speed*delta_time; }
+                        VirtualKeyCode::LShift => { camera_motion.y += translation_speed*delta_time; }
 
+                        VirtualKeyCode::Up => { 
+                            tilt_transform = glm::rotation(-rotation_speed*delta_time, 
+                                &glm::vec3(0.0, 1.0, 0.0).cross(&camera_direction));
+                        }
+                        VirtualKeyCode::Down => { 
+                            tilt_transform = glm::rotation(rotation_speed*delta_time, 
+                                &glm::vec3(0.0, 1.0, 0.0).cross(&camera_direction));
+                        }
+                        VirtualKeyCode::Left => { 
+                            yaw_transform = glm::rotation(-rotation_speed*delta_time, 
+                                &glm::vec3(0.0, 1.0, 0.0));
+                            camera_direction = glm::rotate_vec3(
+                                &camera_direction, 
+                                -rotation_speed*delta_time, 
+                                &glm::vec3(0.0, 1.0, 0.0));
+                        }
+                        VirtualKeyCode::Right => { 
+                            yaw_transform = glm::rotation(rotation_speed*delta_time, 
+                                &glm::vec3(0.0, 1.0, 0.0));
+                            camera_direction = glm::rotate_vec3(
+                                &camera_direction, 
+                                rotation_speed*delta_time, 
+                                &glm::vec3(0.0, 1.0, 0.0));
+                        }
 
                         // default handler:
                         _ => { }
@@ -300,6 +327,17 @@ fn main() {
 
             // == // Please compute camera transforms here (exercise 2 & 3)
 
+            // transformation = glm::translate(&transformation, &camera_movement);
+            // camera_movement = glm::vec3(0.0, 0.0, 0.0);
+            motion_transform = glm::identity();
+            motion_transform *= glm::translate(&motion_transform, &camera_motion);
+            camera_motion = glm::vec3(0.0, 0.0, 0.0);
+            motion_transform *= tilt_transform;
+            motion_transform *= yaw_transform;
+            yaw_transform = glm::identity();
+            tilt_transform = glm::identity();
+            transformation = motion_transform * transformation;
+            
 
             unsafe {
                 simple_shader.activate();
@@ -309,7 +347,7 @@ fn main() {
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
                 
                 let loc = simple_shader.get_uniform_location("transform");
-                let ptr = transformation.as_ptr() as *const gl::types::GLfloat;
+                let ptr = (perspective * transformation).as_ptr() as *const gl::types::GLfloat;
                 gl::UniformMatrix4fv(loc, 1, gl::FALSE, ptr);
                 gl::DrawElements(gl::TRIANGLES, indices.len() as i32, gl::UNSIGNED_INT, ptr::null());
             }
