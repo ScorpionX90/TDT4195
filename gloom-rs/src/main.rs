@@ -304,7 +304,7 @@ fn main() {
                             camera_position.y -= trans_speed;
                         }
                         VirtualKeyCode::LShift => { 
-                            camera_position.y = trans_speed;
+                            camera_position.y += trans_speed;
                         }
 
                         VirtualKeyCode::Down => { 
