@@ -204,15 +204,15 @@ fn main() {
         ];
 
         let colors = vec![
-            1.0, 0.0, 0.0, 0.5,
-            1.0, 0.0, 0.0, 0.5,
-            1.0, 0.0, 0.0, 0.5,
-            0.0, 1.0, 0.0, 0.5,
-            0.0, 1.0, 0.0, 0.5,
-            0.0, 1.0, 0.0, 0.5,
-            0.0, 0.0, 1.0, 0.5,
-            0.0, 0.0, 1.0, 0.5,
-            0.0, 0.0, 1.0, 0.5,
+            1.0, 0.0, 0.0, 1.0,
+            1.0, 0.0, 0.0, 1.0,
+            0.0, 0.0, 1.0, 1.0,
+            1.0, 0.0, 0.0, 1.0,
+            0.0, 1.0, 0.0, 1.0,
+            0.0, 0.0, 1.0, 1.0,
+            1.0, 0.0, 0.0, 1.0,
+            1.0, 0.0, 0.0, 1.0,
+            1.0, 0.0, 0.0, 1.0,
         ];
 
         let vao_id = unsafe { create_vao(&vertices, &indices, &colors) };
@@ -227,13 +227,14 @@ fn main() {
         );
 
         let mut camera_motion: glm::Vec3 = glm::vec3(0.0, 0.0, 0.0);
-        let translation_speed = 3.0f32;
-        let mut camera_direction: glm::Vec3 = glm::vec3(0.0, 0.0, 1.0);
-        let rotation_speed = 1.0f32;
+        let mut cam_direction: glm::Vec3 = glm::vec3(0.0, 0.0, 1.0);
+        
         let mut yaw_transform: glm::Mat4 = glm::identity();
         let mut tilt_transform: glm::Mat4 = glm::identity();
-        let mut motion_transform: glm::Mat4 = glm::identity();
-
+        let mut motion_transform;
+        
+        let rotation_speed = 1.0f32;
+        let translation_speed = 3.0f32;
         // == // Set up your shaders here
 
         // Basic usage of shader helper:
@@ -261,6 +262,9 @@ fn main() {
             let delta_time = now.duration_since(previous_frame_time).as_secs_f32();
             previous_frame_time = now;
 
+            let angle_speed = rotation_speed * delta_time;
+            let trans_speed: f32 = translation_speed * delta_time;
+
             // Handle resize events
             if let Ok(mut new_size) = window_size.lock() {
                 if new_size.2 {
@@ -279,36 +283,30 @@ fn main() {
                         // The `VirtualKeyCode` enum is defined here:
                         //    https://docs.rs/winit/0.25.0/winit/event/enum.VirtualKeyCode.html
 
-                        VirtualKeyCode::A => { camera_motion.x += translation_speed*delta_time; }
-                        VirtualKeyCode::D => { camera_motion.x += -translation_speed*delta_time; }
-                        VirtualKeyCode::W => { camera_motion.z += translation_speed*delta_time; }
-                        VirtualKeyCode::S => { camera_motion.z += -translation_speed*delta_time; }
-                        VirtualKeyCode::Space => { camera_motion.y += -translation_speed*delta_time; }
-                        VirtualKeyCode::LShift => { camera_motion.y += translation_speed*delta_time; }
+                        VirtualKeyCode::A => { camera_motion.x += trans_speed; }
+                        VirtualKeyCode::D => { camera_motion.x += -trans_speed; }
+                        VirtualKeyCode::W => { camera_motion.z += trans_speed; }
+                        VirtualKeyCode::S => { camera_motion.z += -trans_speed; }
+                        VirtualKeyCode::Space => { camera_motion.y += -trans_speed; }
+                        VirtualKeyCode::LShift => { camera_motion.y += trans_speed; }
 
                         VirtualKeyCode::Up => { 
-                            tilt_transform = glm::rotation(-rotation_speed*delta_time, 
-                                &glm::vec3(0.0, 1.0, 0.0).cross(&camera_direction));
+                            tilt_transform = glm::rotation(-angle_speed, 
+                                &glm::vec3(0.0, 1.0, 0.0).cross(&cam_direction));
                         }
                         VirtualKeyCode::Down => { 
-                            tilt_transform = glm::rotation(rotation_speed*delta_time, 
-                                &glm::vec3(0.0, 1.0, 0.0).cross(&camera_direction));
+                            tilt_transform = glm::rotation(angle_speed, 
+                                &glm::vec3(0.0, 1.0, 0.0).cross(&cam_direction));
                         }
                         VirtualKeyCode::Left => { 
-                            yaw_transform = glm::rotation(-rotation_speed*delta_time, 
-                                &glm::vec3(0.0, 1.0, 0.0));
-                            camera_direction = glm::rotate_vec3(
-                                &camera_direction, 
-                                -rotation_speed*delta_time, 
-                                &glm::vec3(0.0, 1.0, 0.0));
+                            yaw_transform = glm::rotation(-angle_speed, &glm::vec3(0.0, 1.0, 0.0));
+                            cam_direction = glm::rotate_vec3(
+                                &cam_direction, -angle_speed, &glm::vec3(0.0, 1.0, 0.0));
                         }
                         VirtualKeyCode::Right => { 
-                            yaw_transform = glm::rotation(rotation_speed*delta_time, 
-                                &glm::vec3(0.0, 1.0, 0.0));
-                            camera_direction = glm::rotate_vec3(
-                                &camera_direction, 
-                                rotation_speed*delta_time, 
-                                &glm::vec3(0.0, 1.0, 0.0));
+                            yaw_transform = glm::rotation(angle_speed, &glm::vec3(0.0, 1.0, 0.0));
+                            cam_direction = glm::rotate_vec3(
+                                &cam_direction, angle_speed, &glm::vec3(0.0, 1.0, 0.0));
                         }
 
                         // default handler:
@@ -326,18 +324,17 @@ fn main() {
             }
 
             // == // Please compute camera transforms here (exercise 2 & 3)
-
-            // transformation = glm::translate(&transformation, &camera_movement);
-            // camera_movement = glm::vec3(0.0, 0.0, 0.0);
             motion_transform = glm::identity();
             motion_transform *= glm::translate(&motion_transform, &camera_motion);
-            camera_motion = glm::vec3(0.0, 0.0, 0.0);
-            motion_transform *= tilt_transform;
             motion_transform *= yaw_transform;
-            yaw_transform = glm::identity();
-            tilt_transform = glm::identity();
+            motion_transform *= tilt_transform;
             transformation = motion_transform * transformation;
             
+            // Reset frame transforms
+            camera_motion = glm::vec3(0.0, 0.0, 0.0);
+            yaw_transform = glm::identity();
+            tilt_transform = glm::identity();
+
 
             unsafe {
                 simple_shader.activate();

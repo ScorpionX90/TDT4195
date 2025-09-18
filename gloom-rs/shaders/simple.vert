@@ -3,7 +3,7 @@
 layout(location=0) in vec3 position;
 layout(location=1) in vec4 vertex_colors;
 uniform mat4 transform;
-out vec4 fragment_colors;
+noperspective out vec4 fragment_colors;
 
 
 void main()

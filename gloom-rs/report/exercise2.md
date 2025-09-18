@@ -41,7 +41,13 @@ OpenGL does a simple interpolation between the vertex colors, and assigns a colo
 
 Here we have drawn three partially overlapping triangles drawn in the order "red - green - blue" with red having the highest z-index (furthest back), followed by green and finally blue. All triangles are rendered with alpha = 0.4
 
-### b) TODO
+### b)
+
+#### I)
+When reordering the color of the triangles the color of the overlapping segment shifts toward the new color. This effect is stronger the further to the front we change the color. The reason we observe this is because transparent triangles, will let some of the color of what is behind it through. When this happens we will "see" a mix of the background colors and the color of the triangle itself. Changing one color, thus changes the hue of the overlapping region.
+
+#### II)
+If we change the depths of the triangles, we are not drawing our triangles front to back. Alpha blending works by mixing the color of a given pixel with whatever colors are already present behind the pixels location at drawtime. If we draw the geometry behind a given triangle before its background contents, the blending won't occour, and our overlapping region will only reflect the blending of whatever geometry was drawn in a back to front order. 
 
 ## Task 3)
 
@@ -81,3 +87,14 @@ $d$ and $e$ in conjunction and in accordance with the 2D rotation matrix,
 otherwise we end up with a shear instead. Because we have to change these values
 together, it is impossible to observe rotational transformations from only
 changing one value at a time, starting from the identity matrix.
+
+
+## Bonus task b)
+
+Applying some perspective to our scene, we see that the smooth interolation qualifier yields a color interpolation which is corrected in terms of perspective. In the below image you can clearly see how the colors are shifted between the smooth and noperspective interpolation models:
+
+![Smooth interpolation](./images/smooth.png)
+Smooth interpolation
+
+![noperspective interpolation](./images/noperspective.png)
+noperspective interpolation
