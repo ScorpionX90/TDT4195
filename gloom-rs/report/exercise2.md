@@ -88,16 +88,48 @@ otherwise we end up with a shear instead. Because we have to change these values
 together, it is impossible to observe rotational transformations from only
 changing one value at a time, starting from the identity matrix.
 
+## Task 4
+
+### b)
+
+Keybinds for the camera controls follow the default listed specifications. They are listed below:
+
+**Camera rotation:**
+
+Tilt : `UP and DOWN`
+
+Yaw : `LEFT and RIGHT`
+
+**Translation:**
+
+Local Forward / Backward: `W and S`
+
+Local Left / Right: `A and D`
+
+Global up / down: `SPACE and LShift`
+
 
 ## Bonus task a)
-Implemented in code. Note that we have only made translation relative to the yaw of camera, and not the tilt. This is done as a preference from our side.
+Implemented in code. Note that we have made our translation relative to only the yaw of camera. This is simply a choice of preference from our side.
+
+We could have implemented translation as a function of both yaw and tilt, in which case our forward vector would be:
+
+$$
+forward = \begin{bmatrix}
+-cos(tilt)*sin(yaw)\\
+sin(tilt)\\
+cos(tilt)*cos(yaw)
+\end{bmatrix}
+$$
+
+The right vector would also have to be changed to be a rotation in 3D space, as opposed to the current XZ plane rotation.
+
+Finally the ```space``` and ```LShift``` controls would have to be mapped to our local y-vector as opposed to a global one. 
 
 ## Bonus task b)
 
 Applying some perspective to our scene, we see that the smooth interolation qualifier yields a color interpolation which is corrected in terms of perspective. In the below image you can clearly see how the colors are shifted between the smooth and noperspective interpolation models:
 
 ![Smooth interpolation](./images/smooth.png)
-Smooth interpolation
 
-![noperspective interpolation](./images/noperspective.png)
-noperspective interpolation
+![Noperspective interpolation](./images/noperspective.png)
