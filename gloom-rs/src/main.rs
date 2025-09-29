@@ -14,11 +14,16 @@ use std::sync::{Mutex, Arc, RwLock};
 
 mod shader;
 mod util;
+mod mesh;
+mod scene_graph;
+mod toolbox;
 
-use glm::{mat4, pi, transpose};
+use glm::{mat4, pi, transpose, Vec3};
 use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState::{Pressed, Released}, VirtualKeyCode::{self, *}};
 use glutin::event_loop::ControlFlow;
 use libc::CTRL_ATTR_MCAST_GRP_NAME;
+
+use crate::mesh::Terrain;
 
 // initial window size
 const INITIAL_SCREEN_W: u32 = 800;
@@ -55,9 +60,9 @@ fn offset<T>(n: u32) -> *const c_void {
 
 
 // == // Generate your VAO here
-unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colors: &Vec<f32>) -> u32 {
+unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colors: &Vec<f32>, normals: &Vec<f32>, id:u32) -> u32 {
     // generate a VAO and bind it
-    let mut vao_id: u32 = 0;
+    let mut vao_id: u32 = id;
     gl::GenVertexArrays(1, &mut vao_id);
     gl::BindVertexArray(vao_id);
 
@@ -84,7 +89,7 @@ unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colors: &Vec<f32>)
     // -- color buffer --
 
     // generate a VBO and bind it
-    let mut colors_vbo_id: u32 = 0;
+    let mut colors_vbo_id: u32 = 1;
     gl::GenBuffers(1, &mut colors_vbo_id);
     gl::BindBuffer(gl::ARRAY_BUFFER, colors_vbo_id);
 
@@ -100,6 +105,26 @@ unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colors: &Vec<f32>)
     let colors_index = 1;
     gl::VertexAttribPointer(colors_index, 4, gl::FLOAT, gl::FALSE, size_of::<f32>()*4, ptr::null());
     gl::EnableVertexAttribArray(colors_index);
+
+    // -- normal buffer --
+
+    // generate a VBO and bind it
+    let mut normals_vbo_id: u32 = 2;
+    gl::GenBuffers(1, &mut normals_vbo_id);
+    gl::BindBuffer(gl::ARRAY_BUFFER, normals_vbo_id);
+
+    // fill it with data
+    gl::BufferData(
+        gl::ARRAY_BUFFER,
+        byte_size_of_array(normals),
+        pointer_to_array(normals),
+        gl::STATIC_DRAW
+    );
+
+    // configure a VAP for the normal data and enable it
+    let normals_index = 2;
+    gl::VertexAttribPointer(normals_index, 3, gl::FLOAT, gl::FALSE, size_of::<f32>()*3, ptr::null());
+    gl::EnableVertexAttribArray(normals_index);
 
     // -- index buffer --
 
@@ -181,57 +206,22 @@ fn main() {
         }
 
         // == // Set up your VAO around here
-        let vertices = vec![
-            //Triangle 1
-             0.8,  0.2, -5.6,
-            -0.2,  0.2, -5.6,
-             0.3, -0.8, -5.6,
 
-            // // Triangle 2
-            -0.8,  0.2, -3.4,
-            -0.3, -0.8, -3.4,
-             0.2,  0.2, -3.4,
-
-            // // Triangle 3
-             0.0, -0.2, -1.2,
-             0.5, 0.8, -1.2,
-            -0.5, 0.8, -1.2,
-        ];
-
-        let indices = vec![
-            0,1,2,
-            0,2,1,
-            3,4,5,
-            3,5,4,
-            6,7,8,
-            6,8,7
-        ];
-
-        let colors = vec![
-            1.0, 0.0, 0.0, 0.4,
-            1.0, 0.0, 0.0, 0.4,
-            0.0, 0.0, 1.0, 0.4,
-            1.0, 0.0, 0.0, 0.4,
-            0.0, 1.0, 0.0, 0.4,
-            0.0, 0.0, 1.0, 0.4,
-            1.0, 0.0, 0.0, 0.4,
-            1.0, 0.0, 0.0, 0.4,
-            1.0, 0.0, 0.0, 0.4,
-        ];
-
-        let vao_id = unsafe { create_vao(&vertices, &indices, &colors) };
-        
+        let lunarsurface = Terrain::load(&"resources/lunarsurface.obj");
+        let lunar_vao_id = unsafe { 
+            create_vao(&lunarsurface.vertices, &lunarsurface.indices, &lunarsurface.colors, &lunarsurface.normals, 1)
+        };
         
         let mut transformation: glm::Mat4;
         let perspective: glm::Mat4 = glm::perspective(
             window_aspect_ratio,
             120.0f32,
             1.0f32,
-            100.0f32
+            1000.0f32
         );
 
         let mut camera_position: glm::Vec3 = glm::vec3(0.0, 0.0, 0.0);
-        let translation_speed = 3.0f32;
+        let translation_speed = 12.0f32;
         let rotation_speed = 1.5f32;
 
         let mut yaw = 0.0f32;
@@ -360,7 +350,7 @@ fn main() {
                 // Apply perspective transformation last
                 let ptr = (perspective * transformation).as_ptr() as *const gl::types::GLfloat;
                 gl::UniformMatrix4fv(loc, 1, gl::FALSE, ptr);
-                gl::DrawElements(gl::TRIANGLES, indices.len() as i32, gl::UNSIGNED_INT, ptr::null());
+                gl::DrawElements(gl::TRIANGLES, lunarsurface.index_count, gl::UNSIGNED_INT, ptr::null());
             }
 
             // Display the new color buffer on the display
