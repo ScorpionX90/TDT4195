@@ -401,12 +401,12 @@ fn main() {
 
                 let rotor_speed = 60.0f32;
                 
-                // let iter_heli_heading = toolbox::simple_heading_animation(elapsed);
-                // heli_root_node.position.x = iter_heli_heading.x;
-                // heli_root_node.position.z = iter_heli_heading.z;
-                // heli_root_node.rotation.z = iter_heli_heading.roll;
-                // heli_root_node.rotation.y = iter_heli_heading.yaw;
-                // heli_root_node.rotation.x = iter_heli_heading.pitch;
+                let iter_heli_heading = toolbox::simple_heading_animation(elapsed);
+                heli_root_node.position.x = iter_heli_heading.x;
+                heli_root_node.position.z = iter_heli_heading.z;
+                heli_root_node.rotation.z = iter_heli_heading.roll;
+                heli_root_node.rotation.y = iter_heli_heading.yaw;
+                heli_root_node.rotation.x = iter_heli_heading.pitch;
 
                 heli_main_rotor_node.rotation.y = elapsed * rotor_speed;
                 heli_tail_rotor_node.rotation.x = elapsed * rotor_speed;
@@ -424,9 +424,9 @@ fn main() {
                     
                     // translate to pivot, rotate, translate back
                     model_matrix = glm::translate(&model_matrix, &node.reference_point);
-                    model_matrix = glm::rotate_x(&model_matrix, node.rotation.x);
-                    model_matrix = glm::rotate_y(&model_matrix, node.rotation.y);
                     model_matrix = glm::rotate_z(&model_matrix, node.rotation.z);
+                    model_matrix = glm::rotate_y(&model_matrix, node.rotation.y);
+                    model_matrix = glm::rotate_x(&model_matrix, node.rotation.x);
                     model_matrix = glm::translate(&model_matrix, &-node.reference_point);
 
                     // combine with parent
