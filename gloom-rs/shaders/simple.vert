@@ -12,5 +12,5 @@ void main()
 {
     gl_Position = transform * vec4(position, 1.0f);
     fragment_colors = vertex_colors;
-    normal_vec = normal;
+    normal_vec = normalize(vec3(transform * vec4(normal, 0.0f)));
 }

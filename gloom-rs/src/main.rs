@@ -18,7 +18,7 @@ mod mesh;
 mod scene_graph;
 mod toolbox;
 
-use glm::identity;
+use glm::{identity, rotation};
 use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState::{Pressed, Released}, VirtualKeyCode::{self, *}};
 use glutin::event_loop::ControlFlow;
 use scene_graph::SceneNode;
@@ -397,16 +397,16 @@ fn main() {
                 
                 // Apply perspective transformation last
                 let transform_thus_far = perspective * transformation;
-                let loc = simple_shader.get_uniform_location("transform");
 
                 let rotor_speed = 60.0f32;
                 
-                let iter_heli_heading = toolbox::simple_heading_animation(elapsed);
-                heli_root_node.position.x = iter_heli_heading.x;
-                heli_root_node.position.z = iter_heli_heading.z;
-                heli_root_node.rotation.z = iter_heli_heading.roll;
-                heli_root_node.rotation.y = iter_heli_heading.yaw;
-                heli_root_node.rotation.x = iter_heli_heading.pitch;
+                // let iter_heli_heading = toolbox::simple_heading_animation(elapsed);
+                // heli_root_node.position.x = iter_heli_heading.x;
+                // heli_root_node.position.z = iter_heli_heading.z;
+                // heli_root_node.rotation.z = iter_heli_heading.roll;
+                // heli_root_node.rotation.y = iter_heli_heading.yaw;
+                // heli_root_node.rotation.x = iter_heli_heading.pitch;
+                heli_root_node.rotation.y = elapsed;
 
                 heli_main_rotor_node.rotation.y = elapsed * rotor_speed;
                 heli_tail_rotor_node.rotation.x = elapsed * rotor_speed;
@@ -414,14 +414,14 @@ fn main() {
                 unsafe fn draw_scene(node: &scene_graph::SceneNode,
                     view_projection_matrix: &glm::Mat4,
                     mut transformation_so_far: glm::Mat4,
-                    loc: i32,
+                    shader: &shader::Shader,
                     elapsed: f32
                 ) {
                     
                     let mut model_matrix = identity();
                     // then apply node’s actual translation
                     model_matrix = glm::translate(&model_matrix, &node.position);
-                    
+
                     // translate to pivot, rotate, translate back
                     model_matrix = glm::translate(&model_matrix, &node.reference_point);
                     model_matrix = glm::rotate_z(&model_matrix, node.rotation.z);
@@ -430,8 +430,9 @@ fn main() {
                     model_matrix = glm::translate(&model_matrix, &-node.reference_point);
 
                     // combine with parent
-                    transformation_so_far =  transformation_so_far * model_matrix;
+                    transformation_so_far = transformation_so_far * model_matrix;
                     
+                    let loc = shader.get_uniform_location("transform");
                     gl::UniformMatrix4fv(loc, 1, gl::FALSE, (view_projection_matrix * transformation_so_far).as_ptr());
                     
                     if node.index_count >= 0 {
@@ -440,11 +441,11 @@ fn main() {
                     }
                     
                     for &child in &node.children {
-                        draw_scene(&*child, view_projection_matrix, transformation_so_far, loc, elapsed);
+                        draw_scene(&*child, view_projection_matrix, transformation_so_far, shader, elapsed);
                     }
                 }
                 
-                draw_scene(&scene_node, &transform_thus_far, identity(), loc, elapsed);
+                draw_scene(&scene_node, &transform_thus_far, identity(), &simple_shader, elapsed);
                 // Display the new color buffer on the display
                 context.swap_buffers().unwrap(); // we use "double buffering" to avoid artifacts
             }
