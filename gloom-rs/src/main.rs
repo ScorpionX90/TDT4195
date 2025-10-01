@@ -18,12 +18,12 @@ mod mesh;
 mod scene_graph;
 mod toolbox;
 
-use glm::{mat4, pi, transpose, Vec3};
+use glm::identity;
 use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState::{Pressed, Released}, VirtualKeyCode::{self, *}};
 use glutin::event_loop::ControlFlow;
-use libc::CTRL_ATTR_MCAST_GRP_NAME;
+use scene_graph::SceneNode;
 
-use crate::mesh::Terrain;
+use crate::mesh::{Helicopter, Terrain};
 
 // initial window size
 const INITIAL_SCREEN_W: u32 = 800;
@@ -51,11 +51,11 @@ fn size_of<T>() -> i32 {
 
 // Get an offset in bytes for n units of type T, represented as a relative pointer
 // Example usage:  offset::<u64>(4)
+// Get an offset in bytes for n units of type T, represented as a relative pointer
+// Example usage:  offset::<u64>(4)
 fn offset<T>(n: u32) -> *const c_void {
-    (n * mem::size_of::<T>() as u32) as *const T as *const c_void
+    (n * mem::size_of::<T>() as u32) as *const c_void
 }
-
-// Get a null pointer (equivalent to an offset of 0)
 // ptr::null()
 
 
@@ -208,10 +208,59 @@ fn main() {
         // == // Set up your VAO around here
 
         let lunarsurface = Terrain::load(&"resources/lunarsurface.obj");
+        let helicopter = Helicopter::load(&"resources/helicopter.obj");
+        let heli_body = helicopter.body;
+        let heli_door = helicopter.door;
+        let heli_main_rotor = helicopter.main_rotor;
+        let heli_tail_rotor = helicopter.tail_rotor;
+
+        // 
         let lunar_vao_id = unsafe { 
             create_vao(&lunarsurface.vertices, &lunarsurface.indices, &lunarsurface.colors, &lunarsurface.normals, 1)
         };
+        let heli_body_vao_id = unsafe {
+            create_vao(&heli_body.vertices, &heli_body.indices, &heli_body.colors, &heli_body.normals, 2)
+        };
+        let heli_door_vao_id = unsafe {
+            create_vao(&heli_door.vertices, &heli_door.indices, &heli_door.colors, &heli_door.normals, 2)
+        };
+        let heli_main_rotor_vao_id = unsafe {
+            create_vao(&heli_main_rotor.vertices, &heli_main_rotor.indices, &heli_main_rotor.colors, &heli_main_rotor.normals, 2)
+        };
+        let heli_tail_rotor_vao_id = unsafe {
+            create_vao(&heli_tail_rotor.vertices, &heli_tail_rotor.indices, &heli_tail_rotor.colors, &heli_tail_rotor.normals, 2)
+        };
+
+        // Define scene nodes
+        let mut scene_node = SceneNode::new();
+        let mut lunar_node = SceneNode::from_vao(lunar_vao_id, lunarsurface.index_count);
+        let mut heli_root_node = SceneNode::new();
+        let mut heli_body_node = SceneNode::from_vao(heli_body_vao_id, heli_body.index_count);
+        let mut heli_door_node = SceneNode::from_vao(heli_door_vao_id, heli_door.index_count);
+        let mut heli_main_rotor_node = SceneNode::from_vao(heli_main_rotor_vao_id, heli_main_rotor.index_count);
+        let mut heli_tail_rotor_node = SceneNode::from_vao(heli_tail_rotor_vao_id, heli_tail_rotor.index_count);
+
+        // Set scene graph hierarchy
+        heli_root_node.add_child(&heli_body_node);
+        heli_root_node.add_child(&heli_door_node);
+        heli_root_node.add_child(&heli_main_rotor_node);
+        heli_root_node.add_child(&heli_tail_rotor_node);
+        lunar_node.add_child(&heli_root_node);
+        scene_node.add_child(&lunar_node);
+
+        // Set model reference points
+        scene_node.reference_point = glm::vec3(0.0f32,0.0f32, 0.0f32);
+        lunar_node.reference_point = glm::vec3(0.0f32,0.0f32, 0.0f32);
+        heli_root_node.reference_point = glm::vec3(0.0f32, 0.0f32, 0.0f32);
+        heli_body_node.reference_point = glm::vec3(0.0f32,0.0f32, 0.0f32);
+        heli_door_node.reference_point = glm::vec3(0.0f32, 0.0f32, 0.0f32);
+        heli_main_rotor_node.reference_point = glm::vec3(0.0f32, 2.0f32, 0.0f32);
+        heli_tail_rotor_node.reference_point = glm::vec3(0.35f32, 2.3f32, 10.4f32);
         
+        lunar_node.position.y = -10.0f32;
+        heli_main_rotor_node.rotation = glm::vec3(0.0f32, 2.0f32, 0.0f32);
+        heli_tail_rotor_node.rotation = glm::vec3(1.0f32, 0.0f32, 0.0f32);
+
         let mut transformation: glm::Mat4;
         let perspective: glm::Mat4 = glm::perspective(
             window_aspect_ratio,
@@ -221,7 +270,7 @@ fn main() {
         );
 
         let mut camera_position: glm::Vec3 = glm::vec3(0.0, 0.0, 0.0);
-        let translation_speed = 12.0f32;
+        let translation_speed = 30.0f32;
         let rotation_speed = 1.5f32;
 
         let mut yaw = 0.0f32;
@@ -300,15 +349,15 @@ fn main() {
                         VirtualKeyCode::Down => { 
                             pitch += angle_speed;
                             pitch = pitch.clamp(
-                                -std::f32::consts::FRAC_PI_4,
-                                std::f32::consts::FRAC_PI_4
+                                -std::f32::consts::FRAC_PI_2,
+                                std::f32::consts::FRAC_PI_2
                             );
                         }
                         VirtualKeyCode::Up => { 
                             pitch -= angle_speed;
                             pitch = pitch.clamp(
-                                -std::f32::consts::FRAC_PI_4,
-                                std::f32::consts::FRAC_PI_4
+                                -std::f32::consts::FRAC_PI_2,
+                                std::f32::consts::FRAC_PI_2
                             );
                         }
                         VirtualKeyCode::Right => { 
@@ -343,18 +392,62 @@ fn main() {
                 simple_shader.activate();
 
                 // Clear the color and depth buffers
-                gl::ClearColor(0.035, 0.046, 0.078, 1.0); // night sky
+                gl::ClearColor(0.40, 0.55, 1.0, 1.0); // night sky
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
                 
-                let loc = simple_shader.get_uniform_location("transform");
                 // Apply perspective transformation last
-                let ptr = (perspective * transformation).as_ptr() as *const gl::types::GLfloat;
-                gl::UniformMatrix4fv(loc, 1, gl::FALSE, ptr);
-                gl::DrawElements(gl::TRIANGLES, lunarsurface.index_count, gl::UNSIGNED_INT, ptr::null());
-            }
+                let transform_thus_far = perspective * transformation;
+                let loc = simple_shader.get_uniform_location("transform");
 
-            // Display the new color buffer on the display
-            context.swap_buffers().unwrap(); // we use "double buffering" to avoid artifacts
+                let rotor_speed = 60.0f32;
+                
+                // let iter_heli_heading = toolbox::simple_heading_animation(elapsed);
+                // heli_root_node.position.x = iter_heli_heading.x;
+                // heli_root_node.position.z = iter_heli_heading.z;
+                // heli_root_node.rotation.z = iter_heli_heading.roll;
+                // heli_root_node.rotation.y = iter_heli_heading.yaw;
+                // heli_root_node.rotation.x = iter_heli_heading.pitch;
+
+                heli_main_rotor_node.rotation.y = elapsed * rotor_speed;
+                heli_tail_rotor_node.rotation.x = elapsed * rotor_speed;
+                
+                unsafe fn draw_scene(node: &scene_graph::SceneNode,
+                    view_projection_matrix: &glm::Mat4,
+                    mut transformation_so_far: glm::Mat4,
+                    loc: i32,
+                    elapsed: f32
+                ) {
+                    
+                    let mut model_matrix = identity();
+                    // then apply node’s actual translation
+                    model_matrix = glm::translate(&model_matrix, &node.position);
+                    
+                    // translate to pivot, rotate, translate back
+                    model_matrix = glm::translate(&model_matrix, &node.reference_point);
+                    model_matrix = glm::rotate_x(&model_matrix, node.rotation.x);
+                    model_matrix = glm::rotate_y(&model_matrix, node.rotation.y);
+                    model_matrix = glm::rotate_z(&model_matrix, node.rotation.z);
+                    model_matrix = glm::translate(&model_matrix, &-node.reference_point);
+
+                    // combine with parent
+                    transformation_so_far =  transformation_so_far * model_matrix;
+                    
+                    gl::UniformMatrix4fv(loc, 1, gl::FALSE, (view_projection_matrix * transformation_so_far).as_ptr());
+                    
+                    if node.index_count >= 0 {
+                        gl::BindVertexArray(node.vao_id);
+                        gl::DrawElements(gl::TRIANGLES, node.index_count, gl::UNSIGNED_INT, ptr::null());                    
+                    }
+                    
+                    for &child in &node.children {
+                        draw_scene(&*child, view_projection_matrix, transformation_so_far, loc, elapsed);
+                    }
+                }
+                
+                draw_scene(&scene_node, &transform_thus_far, identity(), loc, elapsed);
+                // Display the new color buffer on the display
+                context.swap_buffers().unwrap(); // we use "double buffering" to avoid artifacts
+            }
         }
     });
 
