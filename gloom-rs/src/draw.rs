@@ -77,6 +77,17 @@ impl ChaseCamera {
             yaw: 0.0
         }
     }
+
+    pub fn forward(&self) -> glm::Vec3 {
+        let f_xz = glm::vec3(-self.yaw.sin(), self.yaw.cos(), 0.0);
+        glm::vec3(f_xz.x, f_xz.z, f_xz.y)
+    }
+
+    pub fn right(&self) -> glm::Vec3 {
+        let f_xz = glm::vec3(-self.yaw.sin(), self.yaw.cos(), 0.0);
+        let r_xz = glm::rotation2d(glm::half_pi()) * f_xz;
+        glm::vec3(r_xz.x, r_xz.z, r_xz.y)
+    }
 }
                 
 pub struct World {
