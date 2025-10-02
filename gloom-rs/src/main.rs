@@ -94,11 +94,7 @@ fn main() {
             1000.0f32
         );
 
-        let meshes = draw::load_models();
-        let nodes = draw::setup_scene_graph(&meshes);
-        let mut world = draw::World {
-            nodes: nodes
-        };
+        let mut world = draw::World::new();
 
         let mut camera_position: glm::Vec3 = glm::vec3(0.0, 0.0, 0.0);
         let translation_speed = 30.0f32;
@@ -226,7 +222,7 @@ fn main() {
                 gl::ClearColor(0.40, 0.55, 1.0, 1.0); // night sky
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                draw::update(elapsed, &mut world, perspective, transformation, &simple_shader);
+                world.update(elapsed, perspective, transformation, &simple_shader);
                 
                 // Display the new color buffer on the display
                 context.swap_buffers().unwrap(); // we use "double buffering" to avoid artifacts
