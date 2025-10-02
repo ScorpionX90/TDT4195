@@ -16,6 +16,7 @@ use std::pin::Pin;
 // having what I arbitrarily decided to be the required level of "simplicity of use".
 pub type Node = ManuallyDrop<Pin<Box<SceneNode>>>;
 
+#[derive(PartialEq)]
 pub struct SceneNode {
     pub position        : glm::Vec3,   // Where I should be in relation to my parent
     pub rotation        : glm::Vec3,   // How I should be rotated, around the X, the Y and the Z axes

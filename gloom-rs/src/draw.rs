@@ -7,7 +7,7 @@ use std::mem::ManuallyDrop;
 use std::pin::Pin;
 
 use crate::mesh::{ Mesh, Terrain, Helicopter };
-use crate::toolbox::{self, open_door, AnimCTX};
+use crate::toolbox::{self, AnimCTX};
 
 
 unsafe fn draw_scene(node: &SceneNode,
@@ -90,7 +90,6 @@ impl World {
         let lunar_mesh = &meshes[&Nodes::LunarSurface];
         let mut lunar_node = SceneNode::from_vao(lunar_mesh.vao_id, lunar_mesh.index_count);
         lunar_node.reference_point = glm::vec3(0.0, 0.0, 0.0);
-        lunar_node.position.y = -10.0;
         nodes.insert(Nodes::LunarSurface, vec![lunar_node]);
 
         nodes.insert(Nodes::HeliRoot, Vec::new());
@@ -101,7 +100,7 @@ impl World {
 
         for _i in 0..num_helicopters {
             let mut heli_root = SceneNode::new();
-            heli_root.reference_point = glm::vec3(0.0, 0.0, 0.0);
+            heli_root.reference_point = glm::vec3(20.0, 10.0, 0.0);
 
             let mut heli_body = SceneNode::from_vao(meshes[&Nodes::HeliBody].vao_id, meshes[&Nodes::HeliBody].index_count);
             heli_body.reference_point = glm::vec3(0.0, 0.0, 0.0);
@@ -164,19 +163,31 @@ impl World {
             self.nodes.get_mut(&Nodes::HeliTailRotor).unwrap()[i].rotation.x = elapsed * rotor_speed;
         }
 
-        for ctx in &mut self.anim_ctxs {
-            let door_transform = open_door(elapsed, ctx);
-            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].position.x = door_transform.x;
-            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].position.y = door_transform.y;
-            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].position.z = door_transform.y;
-            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].rotation.x = door_transform.pitch;
-            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].rotation.y = door_transform.yaw;
-            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].rotation.z = door_transform.roll;
-        }
-
         // Build scene graph on the fly or store scene_root separately
         unsafe {
             draw_scene(&self.nodes[&Nodes::SceneRoot][0], &transform_thus_far, glm::identity(), &shader, elapsed);
+        }
+
+        let mut i = 0;
+        while i < self.anim_ctxs.len() {
+            let transform = (self.anim_ctxs[i].anim_func)(elapsed, &mut self.anim_ctxs[i]);
+
+            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].position.x = transform.x;
+            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].position.y = transform.y;
+            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].position.z = transform.z;
+            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].rotation.x = transform.pitch;
+            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].rotation.y = transform.yaw;
+            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].rotation.z = transform.roll;
+
+            unsafe {
+                draw_scene(&self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0], &transform_thus_far, glm::identity(), &shader, elapsed);
+            }
+
+            if transform.y <= -1000.0f32 {
+                self.anim_ctxs.remove(i);
+            } else {
+                i += 1;
+            }
         }
     }
 }

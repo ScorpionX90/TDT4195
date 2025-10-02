@@ -1,7 +1,8 @@
 extern crate nalgebra_glm as glm;
 use std::f64::consts::PI;
 
-use glm::min2;
+use glm::Vec3;
+use tobj::Mesh;
 
 pub struct Heading {
     pub x     : f32,
@@ -49,7 +50,10 @@ pub struct FullHeading {
 
 pub struct AnimCTX {
     pub stime : f32,
-    pub rand_seed: f32
+    pub rand_seed: f32,
+    pub anim_func: fn(f32, &AnimCTX) -> FullHeading,
+    pub start_pos: Vec3,
+    pub start_rot: Vec3,
 }
 
 pub fn open_door(time: f32, ctx: &AnimCTX) -> FullHeading {
@@ -59,13 +63,14 @@ pub fn open_door(time: f32, ctx: &AnimCTX) -> FullHeading {
     let x_speed = 5.0f32;
     let y_speed = 3.0f32;
     let sim_speed = 5.0f32;
-    let xpos = 5.0f32 * ctx.rand_seed * x_speed * t;
-    let ypos: f32 = -0.5* 9.81f32 * y_speed * t.powf(2.0f32);
-    let zpos: f32 = ctx.rand_seed * 5.0f32 * t;
 
-    let tilt = ctx.rand_seed * sim_speed * y_speed / 12.0f32 * t;
-    let roll = ctx.rand_seed * sim_speed * (x_speed * t) / 5.0f32; 
-    let yaw = tilt;
+    let xpos: f32 = ctx.start_pos.x + 5.0f32 * ctx.rand_seed * x_speed * t;
+    let ypos: f32 = ctx.start_pos.y + -0.5* 9.81f32 * y_speed * t.powf(2.0f32);
+    let zpos: f32 = ctx.start_pos.z + ctx.rand_seed * 5.0f32 * t;
+
+    let tilt = ctx.start_rot.x + ctx.rand_seed * sim_speed * y_speed / 12.0f32 * t;
+    let roll = ctx.start_rot.y + ctx.rand_seed * sim_speed * (x_speed * t) / 5.0f32; 
+    let yaw = ctx.start_rot.z + tilt;
 
     FullHeading {
         x    : xpos as f32,

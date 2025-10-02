@@ -11,7 +11,6 @@ extern crate nalgebra_glm as glm;
 use std::ptr;
 use std::thread;
 use std::sync::{Mutex, Arc, RwLock};
-use rand::random;
 
 mod shader;
 mod util;
@@ -24,6 +23,8 @@ use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState
 use glutin::event_loop::ControlFlow;
 
 
+use crate::draw::Nodes;
+use crate::scene_graph::SceneNode;
 use crate::toolbox::AnimCTX;
 
 // initial window size
@@ -177,10 +178,22 @@ fn main() {
                             camera_position.y += trans_speed;
                         }
                         VirtualKeyCode::E => {
-                            world.anim_ctxs.push(AnimCTX{
-                                stime : elapsed, 
-                                rand_seed: rand::random::<f32>()
-                            });
+
+                            let ptr = &world.nodes[&Nodes::HeliDoor][0];
+                            let parentptr = &world.nodes[&Nodes::HeliRoot][0];
+                            
+                            if let Some(pos) = world.nodes[&Nodes::HeliRoot][0].children.iter().position(|&c| ptr::eq(c, ptr.as_ref().get_ref())) {
+
+                                world.anim_ctxs.push(AnimCTX{
+                                    stime : elapsed, 
+                                    rand_seed: rand::random::<f32>(),
+                                    anim_func: toolbox::open_door,
+                                    start_pos: parentptr.position,
+                                    start_rot: parentptr.rotation
+                                });
+                            
+                               world.nodes.get_mut(&Nodes::HeliRoot).unwrap()[0].children.remove(pos);
+                            }
                         }
 
                         VirtualKeyCode::Down => { 
