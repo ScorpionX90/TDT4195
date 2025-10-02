@@ -219,7 +219,7 @@ fn main() {
                 simple_shader.activate();
 
                 // Clear the color and depth buffers
-                gl::ClearColor(0.40, 0.55, 1.0, 1.0); // night sky
+                gl::ClearColor(40.0f32 / 256.0f32, 42.0f32 / 256.0f32, 54.0f32 / 256.0f32, 1.0); // night sky
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
                 world.update(elapsed, perspective, transformation, &simple_shader);

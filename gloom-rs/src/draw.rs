@@ -1,5 +1,5 @@
 use crate::shader::Shader;
-use crate::scene_graph::SceneNode;
+use crate::scene_graph::{ SceneNode, Node };
 
 use std::collections::HashMap;
 use std::ptr;
@@ -58,7 +58,7 @@ pub enum Nodes {
 }
                 
 pub struct World {
-    pub nodes: HashMap<Nodes, ManuallyDrop<Pin<Box<SceneNode>>>>,
+    pub nodes: HashMap<Nodes, Vec<ManuallyDrop<Pin<Box<SceneNode>>>>>,
 }
 
 impl World {
@@ -79,44 +79,68 @@ impl World {
         ])
     }
 
-    fn setup_scene_graph(meshes: &HashMap<Nodes, Mesh>) -> HashMap<Nodes, ManuallyDrop<Pin<Box<SceneNode>>>> {
-        let mut nodes = HashMap::new();
+    fn setup_scene_graph(meshes: &HashMap<Nodes, Mesh>) -> HashMap<Nodes, Vec<ManuallyDrop<Pin<Box<SceneNode>>>>> {
+        let num_helicopters = 5;
+        let mut nodes: HashMap<Nodes, Vec<ManuallyDrop<Pin<Box<SceneNode>>>>> = HashMap::new();
 
-        // Create all nodes with correct VAO IDs from meshes
-        for (node, mesh) in meshes {
-            nodes.insert(*node, SceneNode::from_vao(mesh.vao_id, mesh.index_count));
+        nodes.insert(Nodes::SceneRoot, vec![SceneNode::new()]);
+
+        let lunar_mesh = &meshes[&Nodes::LunarSurface];
+        let mut lunar_node = SceneNode::from_vao(lunar_mesh.vao_id, lunar_mesh.index_count);
+        lunar_node.reference_point = glm::vec3(0.0, 0.0, 0.0);
+        lunar_node.position.y = -10.0;
+        nodes.insert(Nodes::LunarSurface, vec![lunar_node]);
+
+        nodes.insert(Nodes::HeliRoot, Vec::new());
+        nodes.insert(Nodes::HeliBody, Vec::new());
+        nodes.insert(Nodes::HeliDoor, Vec::new());
+        nodes.insert(Nodes::HeliMainRotor, Vec::new());
+        nodes.insert(Nodes::HeliTailRotor, Vec::new());
+
+        for i in 0..num_helicopters {
+            let mut heli_root = SceneNode::new();
+            heli_root.reference_point = glm::vec3(0.0, 0.0, 0.0);
+
+            let mut heli_body = SceneNode::from_vao(meshes[&Nodes::HeliBody].vao_id, meshes[&Nodes::HeliBody].index_count);
+            heli_body.reference_point = glm::vec3(0.0, 0.0, 0.0);
+
+            let mut heli_door = SceneNode::from_vao(meshes[&Nodes::HeliDoor].vao_id, meshes[&Nodes::HeliDoor].index_count);
+            heli_door.reference_point = glm::vec3(0.0, 0.0, 0.0);
+
+            let mut heli_main_rotor = SceneNode::from_vao(meshes[&Nodes::HeliMainRotor].vao_id, meshes[&Nodes::HeliMainRotor].index_count);
+            heli_main_rotor.reference_point = glm::vec3(0.0, 2.0, 0.0);
+            heli_main_rotor.rotation = glm::vec3(0.0, 2.0, 0.0);
+
+            let mut heli_tail_rotor = SceneNode::from_vao(meshes[&Nodes::HeliTailRotor].vao_id, meshes[&Nodes::HeliTailRotor].index_count);
+            heli_tail_rotor.reference_point = glm::vec3(0.35, 2.3, 10.4);
+            heli_tail_rotor.rotation = glm::vec3(1.0, 0.0, 0.0);
+
+            nodes.get_mut(&Nodes::HeliRoot).unwrap().push(heli_root);
+            nodes.get_mut(&Nodes::HeliBody).unwrap().push(heli_body);
+            nodes.get_mut(&Nodes::HeliDoor).unwrap().push(heli_door);
+            nodes.get_mut(&Nodes::HeliMainRotor).unwrap().push(heli_main_rotor);
+            nodes.get_mut(&Nodes::HeliTailRotor).unwrap().push(heli_tail_rotor);
         }
 
-        nodes.insert(Nodes::HeliRoot, SceneNode::new());
-        nodes.insert(Nodes::SceneRoot, SceneNode::new());
+        for i in 0..num_helicopters {
+            let heli_body_ptr = nodes[&Nodes::HeliBody][i].as_ref().get_ref() as *const SceneNode;
+            let heli_door_ptr = nodes[&Nodes::HeliDoor][i].as_ref().get_ref() as *const SceneNode;
+            let heli_main_rotor_ptr = nodes[&Nodes::HeliMainRotor][i].as_ref().get_ref() as *const SceneNode;
+            let heli_tail_rotor_ptr = nodes[&Nodes::HeliTailRotor][i].as_ref().get_ref() as *const SceneNode;
+            let heli_root_ptr = nodes[&Nodes::HeliRoot][i].as_ref().get_ref() as *const SceneNode;
 
-        // Set reference points and initial state
-        nodes.get_mut(&Nodes::LunarSurface).unwrap().reference_point = glm::vec3(0.0, 0.0, 0.0);
-        nodes.get_mut(&Nodes::LunarSurface).unwrap().position.y = -10.0;
+            unsafe {
+                nodes.get_mut(&Nodes::HeliRoot).unwrap()[i].add_child(&*heli_body_ptr);
+                nodes.get_mut(&Nodes::HeliRoot).unwrap()[i].add_child(&*heli_door_ptr);
+                nodes.get_mut(&Nodes::HeliRoot).unwrap()[i].add_child(&*heli_main_rotor_ptr);
+                nodes.get_mut(&Nodes::HeliRoot).unwrap()[i].add_child(&*heli_tail_rotor_ptr);
 
-        nodes.get_mut(&Nodes::HeliRoot).unwrap().reference_point = glm::vec3(0.0, 0.0, 0.0);
-        nodes.get_mut(&Nodes::HeliBody).unwrap().reference_point = glm::vec3(0.0, 0.0, 0.0);
-        nodes.get_mut(&Nodes::HeliDoor).unwrap().reference_point = glm::vec3(0.0, 0.0, 0.0);
-        nodes.get_mut(&Nodes::HeliMainRotor).unwrap().reference_point = glm::vec3(0.0, 2.0, 0.0);
-        nodes.get_mut(&Nodes::HeliMainRotor).unwrap().rotation = glm::vec3(0.0, 2.0, 0.0);
-        nodes.get_mut(&Nodes::HeliTailRotor).unwrap().reference_point = glm::vec3(0.35, 2.3, 10.4);
-        nodes.get_mut(&Nodes::HeliTailRotor).unwrap().rotation = glm::vec3(1.0, 0.0, 0.0);
+                nodes.get_mut(&Nodes::LunarSurface).unwrap()[0].add_child(&*heli_root_ptr);
+            }
+        }
 
-        // BUILD THE SCENE GRAPH HIERARCHY
-        let heli_body_ptr = nodes.get(&Nodes::HeliBody).unwrap().as_ref().get_ref() as *const SceneNode;
-        let heli_door_ptr = nodes.get(&Nodes::HeliDoor).unwrap().as_ref().get_ref() as *const SceneNode;
-        let heli_main_rotor_ptr = nodes.get(&Nodes::HeliMainRotor).unwrap().as_ref().get_ref() as *const SceneNode;
-        let heli_tail_rotor_ptr = nodes.get(&Nodes::HeliTailRotor).unwrap().as_ref().get_ref() as *const SceneNode;
-        let heli_root_ptr = nodes.get(&Nodes::HeliRoot).unwrap().as_ref().get_ref() as *const SceneNode;
-        let lunar_ptr = nodes.get(&Nodes::LunarSurface).unwrap().as_ref().get_ref() as *const SceneNode;
-
-        nodes.get_mut(&Nodes::HeliRoot).unwrap().add_child(unsafe { &*heli_body_ptr });
-        nodes.get_mut(&Nodes::HeliRoot).unwrap().add_child(unsafe { &*heli_door_ptr });
-        nodes.get_mut(&Nodes::HeliRoot).unwrap().add_child(unsafe { &*heli_main_rotor_ptr });
-        nodes.get_mut(&Nodes::HeliRoot).unwrap().add_child(unsafe { &*heli_tail_rotor_ptr });
-
-        nodes.get_mut(&Nodes::LunarSurface).unwrap().add_child(unsafe { &*heli_root_ptr });
-        nodes.get_mut(&Nodes::SceneRoot).unwrap().add_child(unsafe { &*lunar_ptr });
+        let lunar_ptr = nodes[&Nodes::LunarSurface][0].as_ref().get_ref() as *const SceneNode;
+        nodes.get_mut(&Nodes::SceneRoot).unwrap()[0].add_child(unsafe { &*lunar_ptr });
 
         return nodes;
     }
@@ -125,21 +149,22 @@ impl World {
         let transform_thus_far = perspective * transformation;
         let rotor_speed = 60.0;
 
-        let iter_heli_heading = toolbox::simple_heading_animation(elapsed);
+        for i in 0..self.nodes[&Nodes::HeliRoot].len() {
+            let iter_heli_heading = toolbox::simple_heading_animation(elapsed + i as f32 * 1.6f32);
+            let heli_root = &mut self.nodes.get_mut(&Nodes::HeliRoot).unwrap()[i];
+            heli_root.position.x = iter_heli_heading.x;
+            heli_root.position.z = iter_heli_heading.z;
+            heli_root.rotation.z = iter_heli_heading.roll;
+            heli_root.rotation.y = iter_heli_heading.yaw;
+            heli_root.rotation.x = iter_heli_heading.pitch;
 
-        let heli_root = self.nodes.get_mut(&Nodes::HeliRoot).unwrap();
-        heli_root.position.x = iter_heli_heading.x;
-        heli_root.position.z = iter_heli_heading.z;
-        heli_root.rotation.z = iter_heli_heading.roll;
-        heli_root.rotation.y = iter_heli_heading.yaw;
-        heli_root.rotation.x = iter_heli_heading.pitch;
-
-        self.nodes.get_mut(&Nodes::HeliMainRotor).unwrap().rotation.y = elapsed * rotor_speed;
-        self.nodes.get_mut(&Nodes::HeliTailRotor).unwrap().rotation.x = elapsed * rotor_speed;
+            self.nodes.get_mut(&Nodes::HeliMainRotor).unwrap()[i].rotation.y = elapsed * rotor_speed;
+            self.nodes.get_mut(&Nodes::HeliTailRotor).unwrap()[i].rotation.x = elapsed * rotor_speed;
+        }
 
         // Build scene graph on the fly or store scene_root separately
         unsafe {
-            draw_scene(&self.nodes[&Nodes::SceneRoot], &transform_thus_far, glm::identity(), &shader, elapsed);
+            draw_scene(&self.nodes[&Nodes::SceneRoot][0], &transform_thus_far, glm::identity(), &shader, elapsed);
         }
     }
 }
