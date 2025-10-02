@@ -206,6 +206,23 @@ impl World {
             self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].rotation.z = door_transform.roll;
         }
 
+        // camera chase after target
+        let camera_target = &self.nodes[&Nodes::HeliRoot][0];
+        self.camera.target = camera_target.position;
+        let distance = glm::distance(&self.camera.position, &self.camera.target);
+        let direction = glm::normalize(&(self.camera.target - self.camera.position));
+        if distance > self.camera.radius {
+            self.camera.position += direction * (distance - self.camera.radius);
+        }
+
+        // update camera angles
+        self.camera.yaw = direction.z.atan2(direction.x) + glm::half_pi::<f32>();
+        let horizontal_distance = (direction.x * direction.x + direction.z * direction.z).sqrt();
+        self.camera.pitch = direction.y.atan2(horizontal_distance);
+
+
+        let transform_thus_far = self.camera.perspective * self.view_matrix();
+
         // Build scene graph on the fly or store scene_root separately
         unsafe {
             draw_scene(&self.nodes[&Nodes::SceneRoot][0], &transform_thus_far, glm::identity(), &shader, elapsed);
