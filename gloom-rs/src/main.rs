@@ -91,16 +91,13 @@ fn main() {
         }
 
         let mut transformation: glm::Mat4;
-        let perspective: glm::Mat4 = glm::perspective(
+        let mut world = draw::World::new(100.0, glm::perspective(
             window_aspect_ratio,
             120.0f32,
             1.0f32,
             1000.0f32
-        );
+        ));
 
-        let mut world = draw::World::new();
-
-        let mut camera_position: glm::Vec3 = glm::vec3(0.0, 0.0, 0.0);
         let translation_speed = 30.0f32;
         let rotation_speed = 1.5f32;
 
@@ -159,22 +156,22 @@ fn main() {
                 for key in keys.iter() {
                     match key {
                         VirtualKeyCode::W => { 
-                            camera_position += forward * trans_speed;
+                            world.camera.position += forward * trans_speed;
                         }
                         VirtualKeyCode::A => { 
-                            camera_position -= right * trans_speed;
+                            world.camera.position -= right * trans_speed;
                         }
                         VirtualKeyCode::S => { 
-                            camera_position -= forward * trans_speed;
+                            world.camera.position -= forward * trans_speed;
                         }
                         VirtualKeyCode::D => { 
-                            camera_position += right * trans_speed;
+                            world.camera.position += right * trans_speed;
                         }
                         VirtualKeyCode::Space => { 
-                            camera_position.y -= trans_speed;
+                            world.camera.position.y -= trans_speed;
                         }
                         VirtualKeyCode::LShift => { 
-                            camera_position.y += trans_speed;
+                            world.camera.position.y += trans_speed;
                         }
                         VirtualKeyCode::E => {
                             world.anim_ctxs.push(AnimCTX{
@@ -219,7 +216,7 @@ fn main() {
 
             let yaw_matrix = glm::rotation(yaw, &glm::vec3(0.0, 1.0, 0.0));
             let pitch_matrix = glm::rotation(pitch, &glm::vec3(1.0, 0.0, 0.0));
-            let translation_matrix = glm::translation(&(camera_position));
+            let translation_matrix = glm::translation(&(world.camera.position));
             
             // apply yaw dependent pitch first.
             let rotation_matrix = pitch_matrix * yaw_matrix;
@@ -232,7 +229,7 @@ fn main() {
                 gl::ClearColor(40.0f32 / 256.0f32, 42.0f32 / 256.0f32, 54.0f32 / 256.0f32, 1.0); // night sky
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                world.update(elapsed, perspective, transformation, &simple_shader);
+                world.update(elapsed, &simple_shader);
                 
                 // Display the new color buffer on the display
                 context.swap_buffers().unwrap(); // we use "double buffering" to avoid artifacts
