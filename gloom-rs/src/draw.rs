@@ -70,21 +70,18 @@ unsafe fn draw_scene(node: &SceneNode,
     }
 }
                 
-// == // Generate your VAO here
-unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colors: &Vec<f32>, normals: &Vec<f32>, id:u32) -> u32 {
-    // generate a VAO and bind it
-    let mut vao_id: u32 = id;
+// draw.rs - Replace create_vao function
+unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colors: &Vec<f32>, normals: &Vec<f32>) -> u32 {
+    // Let OpenGL generate the VAO ID
+    let mut vao_id: u32 = 0;
     gl::GenVertexArrays(1, &mut vao_id);
     gl::BindVertexArray(vao_id);
 
     // -- vertex buffer --
-
-    // generate a VBO and bind it
     let mut vertices_vbo_id: u32 = 0;
     gl::GenBuffers(1, &mut vertices_vbo_id);
     gl::BindBuffer(gl::ARRAY_BUFFER, vertices_vbo_id);
 
-    // fill it with data
     gl::BufferData(
         gl::ARRAY_BUFFER, 
         byte_size_of_array(vertices),
@@ -92,19 +89,15 @@ unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colors: &Vec<f32>,
         gl::STATIC_DRAW
     );
 
-    // configure a VAP for the data and enable it
     let vertices_index = 0;
     gl::VertexAttribPointer(vertices_index, 3, gl::FLOAT, gl::FALSE, size_of::<f32>()*3, ptr::null());
     gl::EnableVertexAttribArray(vertices_index);
 
     // -- color buffer --
-
-    // generate a VBO and bind it
-    let mut colors_vbo_id: u32 = 1;
+    let mut colors_vbo_id: u32 = 0;
     gl::GenBuffers(1, &mut colors_vbo_id);
     gl::BindBuffer(gl::ARRAY_BUFFER, colors_vbo_id);
 
-    // fill it with data
     gl::BufferData(
         gl::ARRAY_BUFFER, 
         byte_size_of_array(colors),
@@ -112,19 +105,15 @@ unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colors: &Vec<f32>,
         gl::STATIC_DRAW
     );
 
-    // configure a VAP for the data and enable it
     let colors_index = 1;
     gl::VertexAttribPointer(colors_index, 4, gl::FLOAT, gl::FALSE, size_of::<f32>()*4, ptr::null());
     gl::EnableVertexAttribArray(colors_index);
 
     // -- normal buffer --
-
-    // generate a VBO and bind it
-    let mut normals_vbo_id: u32 = 2;
+    let mut normals_vbo_id: u32 = 0;
     gl::GenBuffers(1, &mut normals_vbo_id);
     gl::BindBuffer(gl::ARRAY_BUFFER, normals_vbo_id);
 
-    // fill it with data
     gl::BufferData(
         gl::ARRAY_BUFFER,
         byte_size_of_array(normals),
@@ -132,19 +121,15 @@ unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colors: &Vec<f32>,
         gl::STATIC_DRAW
     );
 
-    // configure a VAP for the normal data and enable it
     let normals_index = 2;
     gl::VertexAttribPointer(normals_index, 3, gl::FLOAT, gl::FALSE, size_of::<f32>()*3, ptr::null());
     gl::EnableVertexAttribArray(normals_index);
 
     // -- index buffer --
-
-    // generate a IBO and bind it
     let mut ibo_id: u32 = 0;
     gl::GenBuffers(1, &mut ibo_id);
     gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ibo_id);
 
-    // fill it with data
     gl::BufferData(
         gl::ELEMENT_ARRAY_BUFFER, 
         byte_size_of_array(indices), 
@@ -172,19 +157,21 @@ pub enum Nodes {
 }
 
 pub fn load_models() -> HashMap<Nodes, Mesh> {
-    let lunarsurface = Terrain::load(&"resources/lunarsurface.obj");
+    let mut lunarsurface = Terrain::load(&"resources/lunarsurface.obj");
     let helicopter = Helicopter::load(&"resources/helicopter.obj");
-    let heli_body = helicopter.body;
-    let heli_door = helicopter.door;
-    let heli_main_rotor = helicopter.main_rotor;
-    let heli_tail_rotor = helicopter.tail_rotor;
+    let mut heli_body = helicopter.body;
+    let mut heli_door = helicopter.door;
+    let mut heli_main_rotor = helicopter.main_rotor;
+    let mut heli_tail_rotor = helicopter.tail_rotor;
+
     unsafe { 
-        create_vao(&lunarsurface.vertices, &lunarsurface.indices, &lunarsurface.colors, &lunarsurface.normals, Nodes::LunarSurface as u32);
-        create_vao(&heli_body.vertices, &heli_body.indices, &heli_body.colors, &heli_body.normals, Nodes::HeliBody as u32);
-        create_vao(&heli_door.vertices, &heli_door.indices, &heli_door.colors, &heli_door.normals, Nodes::HeliDoor as u32);
-        create_vao(&heli_main_rotor.vertices, &heli_main_rotor.indices, &heli_main_rotor.colors, &heli_main_rotor.normals, Nodes::HeliMainRotor as u32);
-        create_vao(&heli_tail_rotor.vertices, &heli_tail_rotor.indices, &heli_tail_rotor.colors, &heli_tail_rotor.normals, Nodes::HeliTailRotor as u32);
+        lunarsurface.vao_id = create_vao(&lunarsurface.vertices, &lunarsurface.indices, &lunarsurface.colors, &lunarsurface.normals);
+        heli_body.vao_id = create_vao(&heli_body.vertices, &heli_body.indices, &heli_body.colors, &heli_body.normals);
+        heli_door.vao_id = create_vao(&heli_door.vertices, &heli_door.indices, &heli_door.colors, &heli_door.normals);
+        heli_main_rotor.vao_id = create_vao(&heli_main_rotor.vertices, &heli_main_rotor.indices, &heli_main_rotor.colors, &heli_main_rotor.normals);
+        heli_tail_rotor.vao_id = create_vao(&heli_tail_rotor.vertices, &heli_tail_rotor.indices, &heli_tail_rotor.colors, &heli_tail_rotor.normals);
     }
+
     return HashMap::from([ 
         (Nodes::LunarSurface, lunarsurface),
         (Nodes::HeliBody, heli_body),
@@ -194,12 +181,13 @@ pub fn load_models() -> HashMap<Nodes, Mesh> {
     ]);
 }
 
+
 pub fn setup_scene_graph(meshes: &HashMap<Nodes, Mesh>) -> HashMap<Nodes, ManuallyDrop<Pin<Box<SceneNode>>>> {
     let mut nodes = HashMap::new();
 
-    // Create all nodes
+    // Create all nodes with correct VAO IDs from meshes
     for (node, mesh) in meshes {
-        nodes.insert(*node, SceneNode::from_vao(*node as u32, mesh.index_count));
+        nodes.insert(*node, SceneNode::from_vao(mesh.vao_id, mesh.index_count));
     }
 
     nodes.insert(Nodes::HeliRoot, SceneNode::new());
@@ -217,8 +205,26 @@ pub fn setup_scene_graph(meshes: &HashMap<Nodes, Mesh>) -> HashMap<Nodes, Manual
     nodes.get_mut(&Nodes::HeliTailRotor).unwrap().reference_point = glm::vec3(0.35, 2.3, 10.4);
     nodes.get_mut(&Nodes::HeliTailRotor).unwrap().rotation = glm::vec3(1.0, 0.0, 0.0);
 
+    // BUILD THE SCENE GRAPH HIERARCHY
+    let heli_body_ptr = nodes.get(&Nodes::HeliBody).unwrap().as_ref().get_ref() as *const SceneNode;
+    let heli_door_ptr = nodes.get(&Nodes::HeliDoor).unwrap().as_ref().get_ref() as *const SceneNode;
+    let heli_main_rotor_ptr = nodes.get(&Nodes::HeliMainRotor).unwrap().as_ref().get_ref() as *const SceneNode;
+    let heli_tail_rotor_ptr = nodes.get(&Nodes::HeliTailRotor).unwrap().as_ref().get_ref() as *const SceneNode;
+    let heli_root_ptr = nodes.get(&Nodes::HeliRoot).unwrap().as_ref().get_ref() as *const SceneNode;
+    let lunar_ptr = nodes.get(&Nodes::LunarSurface).unwrap().as_ref().get_ref() as *const SceneNode;
+
+    nodes.get_mut(&Nodes::HeliRoot).unwrap().add_child(unsafe { &*heli_body_ptr });
+    nodes.get_mut(&Nodes::HeliRoot).unwrap().add_child(unsafe { &*heli_door_ptr });
+    nodes.get_mut(&Nodes::HeliRoot).unwrap().add_child(unsafe { &*heli_main_rotor_ptr });
+    nodes.get_mut(&Nodes::HeliRoot).unwrap().add_child(unsafe { &*heli_tail_rotor_ptr });
+
+    nodes.get_mut(&Nodes::LunarSurface).unwrap().add_child(unsafe { &*heli_root_ptr });
+    nodes.get_mut(&Nodes::SceneRoot).unwrap().add_child(unsafe { &*lunar_ptr });
+
     return nodes;
 }
+
+
 
 pub fn update(elapsed: f32, world: &mut World, perspective: glm::Mat4, transformation: glm::Mat4, shader: &Shader) {
     let transform_thus_far = perspective * transformation;
