@@ -1,6 +1,8 @@
 extern crate nalgebra_glm as glm;
 use std::f64::consts::PI;
 
+use glm::min2;
+
 pub struct Heading {
     pub x     : f32,
     pub z     : f32,
@@ -32,5 +34,45 @@ pub fn simple_heading_animation(time: f32) -> Heading {
         roll  : roll  as f32,
         pitch : pitch as f32,
         yaw   : yaw   as f32,
+    }
+}
+
+
+pub struct FullHeading {
+    pub x     : f32,
+    pub y     : f32,
+    pub z     : f32,
+    pub roll  : f32,
+    pub pitch : f32,
+    pub yaw   : f32,
+}
+
+pub struct AnimCTX {
+    pub stime : f32,
+    pub rand_seed: f32
+}
+
+pub fn open_door(time: f32, ctx: &AnimCTX) -> FullHeading {
+    
+    let t = time - ctx.stime;
+
+    let x_speed = 5.0f32;
+    let y_speed = 3.0f32;
+    let sim_speed = 5.0f32;
+    let xpos = 5.0f32 * ctx.rand_seed * x_speed * t;
+    let ypos: f32 = -0.5* 9.81f32 * y_speed * t.powf(2.0f32);
+    let zpos: f32 = ctx.rand_seed * 5.0f32 * t;
+
+    let tilt = ctx.rand_seed * sim_speed * y_speed / 12.0f32 * t;
+    let roll = ctx.rand_seed * sim_speed * (x_speed * t) / 5.0f32; 
+    let yaw = tilt;
+
+    FullHeading {
+        x    : xpos as f32,
+        y    : ypos as f32,
+        z    : zpos as f32,
+        roll : roll as f32,
+        pitch: tilt as f32,
+        yaw  : yaw as f32
     }
 }

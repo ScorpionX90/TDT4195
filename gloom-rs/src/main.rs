@@ -11,6 +11,7 @@ extern crate nalgebra_glm as glm;
 use std::ptr;
 use std::thread;
 use std::sync::{Mutex, Arc, RwLock};
+use rand::random;
 
 mod shader;
 mod util;
@@ -21,6 +22,9 @@ mod draw;
 
 use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState::{Pressed, Released}, VirtualKeyCode::{self, *}};
 use glutin::event_loop::ControlFlow;
+
+
+use crate::toolbox::AnimCTX;
 
 // initial window size
 const INITIAL_SCREEN_W: u32 = 800;
@@ -172,6 +176,12 @@ fn main() {
                         VirtualKeyCode::LShift => { 
                             camera_position.y += trans_speed;
                         }
+                        VirtualKeyCode::E => {
+                            world.anim_ctxs.push(AnimCTX{
+                                stime : elapsed, 
+                                rand_seed: rand::random::<f32>()
+                            });
+                        }
 
                         VirtualKeyCode::Down => { 
                             pitch += angle_speed;
@@ -219,7 +229,7 @@ fn main() {
                 simple_shader.activate();
 
                 // Clear the color and depth buffers
-                gl::ClearColor(0.40, 0.55, 1.0, 1.0); // night sky
+                gl::ClearColor(40.0f32 / 256.0f32, 42.0f32 / 256.0f32, 54.0f32 / 256.0f32, 1.0); // night sky
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
                 world.update(elapsed, perspective, transformation, &simple_shader);
