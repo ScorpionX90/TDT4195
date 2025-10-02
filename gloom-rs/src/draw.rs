@@ -12,7 +12,7 @@ use crate::toolbox;
 
 unsafe fn draw_scene(node: &SceneNode,
     view_projection_matrix: &glm::Mat4,
-    mut transformation_so_far: glm::Mat4,
+    mut model_transform: glm::Mat4,
     shader: &Shader,
     elapsed: f32
 ) {
@@ -29,10 +29,12 @@ unsafe fn draw_scene(node: &SceneNode,
     model_matrix = glm::translate(&model_matrix, &-node.reference_point);
 
     // combine with parent
-    transformation_so_far = transformation_so_far * model_matrix;
+    model_transform = model_transform * model_matrix;
     
-    let loc = shader.get_uniform_location("transform");
-    gl::UniformMatrix4fv(loc, 1, gl::FALSE, (view_projection_matrix * transformation_so_far).as_ptr());
+    let mvp_location = shader.get_uniform_location("mvp_transform");
+    gl::UniformMatrix4fv(mvp_location, 1, gl::FALSE, (view_projection_matrix * model_transform).as_ptr());
+    let model_location = shader.get_uniform_location("model_transform");
+    gl::UniformMatrix4fv(model_location, 1, gl::FALSE, model_transform.as_ptr());
     
     if node.index_count >= 0 {
         gl::BindVertexArray(node.vao_id);
@@ -40,7 +42,7 @@ unsafe fn draw_scene(node: &SceneNode,
     }
     
     for &child in &node.children {
-        draw_scene(&*child, view_projection_matrix, transformation_so_far, shader, elapsed);
+        draw_scene(&*child, view_projection_matrix, model_transform, shader, elapsed);
     }
 }
 
@@ -56,7 +58,6 @@ pub enum Nodes {
 }
                 
 pub struct World {
-    meshes: HashMap<Nodes, Mesh>,
     pub nodes: HashMap<Nodes, ManuallyDrop<Pin<Box<SceneNode>>>>,
 }
 
