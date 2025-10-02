@@ -36,7 +36,7 @@ fn offset<T>(n: u32) -> *const c_void {
 }
 // ptr::null()
 
-pub unsafe fn draw_scene(node: &SceneNode,
+unsafe fn draw_scene(node: &SceneNode,
     view_projection_matrix: &glm::Mat4,
     mut transformation_so_far: glm::Mat4,
     shader: &Shader,
@@ -156,12 +156,12 @@ unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colors: &Vec<f32>,
 }
 
 pub struct World {
-    meshes: HashMap<Nodes, Mesh>,
-    nodes: HashMap<Nodes, SceneNode>,
+    pub meshes: HashMap<Nodes, Mesh>,
+    pub nodes: HashMap<Nodes, ManuallyDrop<Pin<Box<SceneNode>>>>,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-enum Nodes {
+pub enum Nodes {
     LunarSurface=0,
     HeliBody=1,
     HeliDoor=2,
@@ -194,11 +194,11 @@ pub fn load_models() -> HashMap<Nodes, Mesh> {
     ]);
 }
 
-pub fn setup_scene_graph(meshes: HashMap<Nodes, Mesh>) -> HashMap<Nodes, ManuallyDrop<Pin<Box<SceneNode>>>> {
+pub fn setup_scene_graph(meshes: &HashMap<Nodes, Mesh>) -> HashMap<Nodes, ManuallyDrop<Pin<Box<SceneNode>>>> {
     let mut nodes = HashMap::new();
 
     // Create all nodes
-    for (node, mesh) in &meshes {
+    for (node, mesh) in meshes {
         nodes.insert(*node, SceneNode::from_vao(*node as u32, mesh.index_count));
     }
 

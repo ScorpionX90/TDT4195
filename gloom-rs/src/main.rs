@@ -86,7 +86,6 @@ fn main() {
             println!("GLSL\t: {}", util::get_gl_string(gl::SHADING_LANGUAGE_VERSION));
         }
 
-
         let mut transformation: glm::Mat4;
         let perspective: glm::Mat4 = glm::perspective(
             window_aspect_ratio,
@@ -94,6 +93,13 @@ fn main() {
             1.0f32,
             1000.0f32
         );
+
+        let meshes = draw::load_models();
+        let nodes = draw::setup_scene_graph(&meshes);
+        let mut world = draw::World {
+            meshes: meshes,
+            nodes: nodes
+        };
 
         let mut camera_position: glm::Vec3 = glm::vec3(0.0, 0.0, 0.0);
         let translation_speed = 30.0f32;
@@ -220,6 +226,8 @@ fn main() {
                 // Clear the color and depth buffers
                 gl::ClearColor(0.40, 0.55, 1.0, 1.0); // night sky
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+
+                draw::update(elapsed, &mut world, perspective, transformation, &simple_shader);
                 
                 // Display the new color buffer on the display
                 context.swap_buffers().unwrap(); // we use "double buffering" to avoid artifacts
