@@ -3,8 +3,6 @@ use crate::scene_graph::SceneNode;
 
 use std::collections::HashMap;
 use std::{ mem, ptr, os::raw::c_void };
-use std::thread;
-use std::sync::{Mutex, Arc, RwLock};
 use std::mem::ManuallyDrop;
 use std::pin::Pin;
 
@@ -157,11 +155,9 @@ unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colors: &Vec<f32>,
     return vao_id;
 }
 
-type MeshMap = HashMap<Nodes, Mesh>;
-
-struct World {
-    meshes: MeshMap,
-    scene_graph: SceneNode
+pub struct World {
+    meshes: HashMap<Nodes, Mesh>,
+    nodes: HashMap<Nodes, SceneNode>,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, Hash)]
@@ -175,7 +171,7 @@ enum Nodes {
     SceneRoot=420,
 }
 
-pub fn load_models() -> MeshMap {
+pub fn load_models() -> HashMap<Nodes, Mesh> {
     let lunarsurface = Terrain::load(&"resources/lunarsurface.obj");
     let helicopter = Helicopter::load(&"resources/helicopter.obj");
     let heli_body = helicopter.body;
@@ -183,11 +179,11 @@ pub fn load_models() -> MeshMap {
     let heli_main_rotor = helicopter.main_rotor;
     let heli_tail_rotor = helicopter.tail_rotor;
     unsafe { 
-        create_vao(&lunarsurface.vertices, &lunarsurface.indices, &lunarsurface.colors, &lunarsurface.normals, LunarSurface);
-        create_vao(&heli_body.vertices, &heli_body.indices, &heli_body.colors, &heli_body.normals, 2);
-        create_vao(&heli_door.vertices, &heli_door.indices, &heli_door.colors, &heli_door.normals, 2);
-        create_vao(&heli_main_rotor.vertices, &heli_main_rotor.indices, &heli_main_rotor.colors, &heli_main_rotor.normals, 2);
-        create_vao(&heli_tail_rotor.vertices, &heli_tail_rotor.indices, &heli_tail_rotor.colors, &heli_tail_rotor.normals, 2);
+        create_vao(&lunarsurface.vertices, &lunarsurface.indices, &lunarsurface.colors, &lunarsurface.normals, Nodes::LunarSurface as u32);
+        create_vao(&heli_body.vertices, &heli_body.indices, &heli_body.colors, &heli_body.normals, Nodes::HeliBody as u32);
+        create_vao(&heli_door.vertices, &heli_door.indices, &heli_door.colors, &heli_door.normals, Nodes::HeliDoor as u32);
+        create_vao(&heli_main_rotor.vertices, &heli_main_rotor.indices, &heli_main_rotor.colors, &heli_main_rotor.normals, Nodes::HeliMainRotor as u32);
+        create_vao(&heli_tail_rotor.vertices, &heli_tail_rotor.indices, &heli_tail_rotor.colors, &heli_tail_rotor.normals, Nodes::HeliTailRotor as u32);
     }
     return HashMap::from([ 
         (Nodes::LunarSurface, lunarsurface),
@@ -198,53 +194,49 @@ pub fn load_models() -> MeshMap {
     ]);
 }
 
+pub fn setup_scene_graph(meshes: HashMap<Nodes, Mesh>) -> HashMap<Nodes, ManuallyDrop<Pin<Box<SceneNode>>>> {
+    let mut nodes = HashMap::new();
 
-type SceneGraph = ManuallyDrop<Pin<Box<SceneNode>>>;
-
-pub fn setup_scene_graph(meshes: MeshMap) -> SceneGraph {
-    let mut nodes = HashMap::<Nodes, SceneGraph>::new();
-    let mut heli_root = SceneNode::new();
-    let mut scene_root = SceneNode::new();
-    for (node, mesh) in meshes {
-        nodes.insert(node, SceneNode::from_vao(node as u32, mesh.index_count));
-        if vec![Nodes::HeliBody, Nodes::HeliDoor, Nodes::HeliMainRotor, Nodes::HeliTailRotor].contains(&node) {
-            heli_root.add_child(&nodes[&Nodes::HeliRoot]);
-        }
+    // Create all nodes
+    for (node, mesh) in &meshes {
+        nodes.insert(*node, SceneNode::from_vao(*node as u32, mesh.index_count));
     }
-    nodes.entry(Nodes::LunarSurface).and_modify(|x| x.add_child(&heli_root));
-    scene_root.add_child(&nodes.get(&Nodes::LunarSurface).unwrap());
 
-    // help
-    scene_root.reference_point = glm::vec3(0.0f32,0.0f32, 0.0f32);
-    nodes.entry(Nodes::LunarSurface).and_modify(|x| x.reference_point = glm::vec3(0.0f32,0.0f32, 0.0f32));
-    nodes.entry(Nodes::HeliRoot).and_modify(|x| x.reference_point = glm::vec3(0.0f32, 0.0f32, 0.0f32));
-    nodes.entry(Nodes::HeliBody).and_modify(|x| x.reference_point = glm::vec3(0.0f32,0.0f32, 0.0f32));
-    nodes.entry(Nodes::HeliDoor).and_modify(|x| x.reference_point = glm::vec3(0.0f32, 0.0f32, 0.0f32));
-    nodes.entry(Nodes::HeliMainRotor).and_modify(|x| x.reference_point = glm::vec3(0.0f32, 2.0f32, 0.0f32));
-    nodes.entry(Nodes::HeliTailRotor).and_modify(|x| x.reference_point = glm::vec3(0.35f32, 2.3f32, 10.4f32));
-    
-    nodes.entry(Nodes::LunarSurface).and_modify(|x| x.position.y = -10.0f32);
-    nodes.entry(Nodes::HeliMainRotor).and_modify(|x| x.rotation = glm::vec3(0.0f32, 2.0f32, 0.0f32));
-    nodes.entry(Nodes::HeliTailRotor).and_modify(|x| x.rotation = glm::vec3(1.0f32, 0.0f32, 0.0f32));
-    return scene_root;
+    nodes.insert(Nodes::HeliRoot, SceneNode::new());
+    nodes.insert(Nodes::SceneRoot, SceneNode::new());
+
+    // Set reference points and initial state
+    nodes.get_mut(&Nodes::LunarSurface).unwrap().reference_point = glm::vec3(0.0, 0.0, 0.0);
+    nodes.get_mut(&Nodes::LunarSurface).unwrap().position.y = -10.0;
+
+    nodes.get_mut(&Nodes::HeliRoot).unwrap().reference_point = glm::vec3(0.0, 0.0, 0.0);
+    nodes.get_mut(&Nodes::HeliBody).unwrap().reference_point = glm::vec3(0.0, 0.0, 0.0);
+    nodes.get_mut(&Nodes::HeliDoor).unwrap().reference_point = glm::vec3(0.0, 0.0, 0.0);
+    nodes.get_mut(&Nodes::HeliMainRotor).unwrap().reference_point = glm::vec3(0.0, 2.0, 0.0);
+    nodes.get_mut(&Nodes::HeliMainRotor).unwrap().rotation = glm::vec3(0.0, 2.0, 0.0);
+    nodes.get_mut(&Nodes::HeliTailRotor).unwrap().reference_point = glm::vec3(0.35, 2.3, 10.4);
+    nodes.get_mut(&Nodes::HeliTailRotor).unwrap().rotation = glm::vec3(1.0, 0.0, 0.0);
+
+    return nodes;
 }
 
-
-pub fn update(elapsed: f32, world: World, perspective: glm::Mat4, transformation: glm::Mat4 ) {
+pub fn update(elapsed: f32, world: &mut World, perspective: glm::Mat4, transformation: glm::Mat4, shader: &Shader) {
     let transform_thus_far = perspective * transformation;
-
-    let rotor_speed = 60.0f32;
+    let rotor_speed = 60.0;
 
     let iter_heli_heading = toolbox::simple_heading_animation(elapsed);
-    heli_root_node.position.x = iter_heli_heading.x;
-    heli_root_node.position.z = iter_heli_heading.z;
-    heli_root_node.rotation.z = iter_heli_heading.roll;
-    heli_root_node.rotation.y = iter_heli_heading.yaw;
-    heli_root_node.rotation.x = iter_heli_heading.pitch;
-    world.heli_root_node.rotation.y = elapsed;
 
-    world.heli_main_rotor_node.rotation.y = elapsed * rotor_speed;
-    world.heli_tail_rotor_node.rotation.x = elapsed * rotor_speed;
+    let heli_root = world.nodes.get_mut(&Nodes::HeliRoot).unwrap();
+    heli_root.position.x = iter_heli_heading.x;
+    heli_root.position.z = iter_heli_heading.z;
+    heli_root.rotation.z = iter_heli_heading.roll;
+    heli_root.rotation.y = iter_heli_heading.yaw;
+    heli_root.rotation.x = iter_heli_heading.pitch;
 
-    draw::draw_scene(&scene_node, &transform_thus_far, glm::identity(), &simple_shader, elapsed);
+    world.nodes.get_mut(&Nodes::HeliMainRotor).unwrap().rotation.y = elapsed * rotor_speed;
+    world.nodes.get_mut(&Nodes::HeliTailRotor).unwrap().rotation.x = elapsed * rotor_speed;
+
+    // Build scene graph on the fly or store scene_root separately
+    unsafe {draw_scene(&world.nodes[&Nodes::SceneRoot], &transform_thus_far, glm::identity(), &shader, elapsed);}
 }
+
