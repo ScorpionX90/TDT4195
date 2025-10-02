@@ -130,37 +130,13 @@ impl World {
             let heli_main_rotor_ptr = nodes[&Nodes::HeliMainRotor][i].as_ref().get_ref() as *const SceneNode;
             let heli_tail_rotor_ptr = nodes[&Nodes::HeliTailRotor][i].as_ref().get_ref() as *const SceneNode;
             let heli_root_ptr = nodes[&Nodes::HeliRoot][i].as_ref().get_ref() as *const SceneNode;
-            nodes.get_mut(&Nodes::HeliRoot).unwrap().push(heli_root);
-            nodes.get_mut(&Nodes::HeliBody).unwrap().push(heli_body);
-            nodes.get_mut(&Nodes::HeliDoor).unwrap().push(heli_door);
-            nodes.get_mut(&Nodes::HeliMainRotor).unwrap().push(heli_main_rotor);
-            nodes.get_mut(&Nodes::HeliTailRotor).unwrap().push(heli_tail_rotor);
-        }
-
-        for i in 0..num_helicopters {
-            let heli_body_ptr = nodes[&Nodes::HeliBody][i].as_ref().get_ref() as *const SceneNode;
-            let heli_door_ptr = nodes[&Nodes::HeliDoor][i].as_ref().get_ref() as *const SceneNode;
-            let heli_main_rotor_ptr = nodes[&Nodes::HeliMainRotor][i].as_ref().get_ref() as *const SceneNode;
-            let heli_tail_rotor_ptr = nodes[&Nodes::HeliTailRotor][i].as_ref().get_ref() as *const SceneNode;
-            let heli_root_ptr = nodes[&Nodes::HeliRoot][i].as_ref().get_ref() as *const SceneNode;
 
             unsafe {
                 nodes.get_mut(&Nodes::HeliRoot).unwrap()[i].add_child(&*heli_body_ptr);
                 nodes.get_mut(&Nodes::HeliRoot).unwrap()[i].add_child(&*heli_door_ptr);
                 nodes.get_mut(&Nodes::HeliRoot).unwrap()[i].add_child(&*heli_main_rotor_ptr);
                 nodes.get_mut(&Nodes::HeliRoot).unwrap()[i].add_child(&*heli_tail_rotor_ptr);
-            unsafe {
-                nodes.get_mut(&Nodes::HeliRoot).unwrap()[i].add_child(&*heli_body_ptr);
-                nodes.get_mut(&Nodes::HeliRoot).unwrap()[i].add_child(&*heli_door_ptr);
-                nodes.get_mut(&Nodes::HeliRoot).unwrap()[i].add_child(&*heli_main_rotor_ptr);
-                nodes.get_mut(&Nodes::HeliRoot).unwrap()[i].add_child(&*heli_tail_rotor_ptr);
 
-                nodes.get_mut(&Nodes::LunarSurface).unwrap()[0].add_child(&*heli_root_ptr);
-            }
-        }
-
-        let lunar_ptr = nodes[&Nodes::LunarSurface][0].as_ref().get_ref() as *const SceneNode;
-        nodes.get_mut(&Nodes::SceneRoot).unwrap()[0].add_child(unsafe { &*lunar_ptr });
                 nodes.get_mut(&Nodes::LunarSurface).unwrap()[0].add_child(&*heli_root_ptr);
             }
         }
@@ -200,7 +176,6 @@ impl World {
 
         // Build scene graph on the fly or store scene_root separately
         unsafe {
-            draw_scene(&self.nodes[&Nodes::SceneRoot][0], &transform_thus_far, glm::identity(), &shader, elapsed);
             draw_scene(&self.nodes[&Nodes::SceneRoot][0], &transform_thus_far, glm::identity(), &shader, elapsed);
         }
     }
