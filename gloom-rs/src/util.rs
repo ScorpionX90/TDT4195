@@ -1,6 +1,8 @@
 use std::ffi::CString;
 use libc;
 
+use std::{ mem, os::raw::c_void };
+
 pub unsafe fn get_gl_string(name: gl::types::GLenum) -> String {
     std::ffi::CStr::from_ptr(gl::GetString(name) as *mut libc::c_char).to_string_lossy().to_string()
 }
@@ -30,3 +32,30 @@ pub extern "system" fn debug_callback(
         }
     }
 }
+
+// Get the size of an arbitrary array of numbers measured in bytes
+// Example usage:  byte_size_of_array(my_array)
+pub fn byte_size_of_array<T>(val: &[T]) -> isize {
+    std::mem::size_of_val(&val[..]) as isize
+}
+
+// Get the OpenGL-compatible pointer to an arbitrary array of numbers
+// Example usage:  pointer_to_array(my_array)
+pub fn pointer_to_array<T>(val: &[T]) -> *const c_void {
+    &val[0] as *const T as *const c_void
+}
+
+// Get the size of the given type in bytes
+// Example usage:  size_of::<u64>()
+pub fn size_of<T>() -> i32 {
+    mem::size_of::<T>() as i32
+}
+
+// Get an offset in bytes for n units of type T, represented as a relative pointer
+// Example usage:  offset::<u64>(4)
+// Get an offset in bytes for n units of type T, represented as a relative pointer
+// Example usage:  offset::<u64>(4)
+pub fn offset<T>(n: u32) -> *const c_void {
+    (n * mem::size_of::<T>() as u32) as *const c_void
+}
+// ptr::null()

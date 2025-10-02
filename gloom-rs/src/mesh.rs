@@ -1,5 +1,8 @@
 use tobj;
 
+use crate::util;
+use std::ptr;
+
 // internal helper
 fn generate_color_vec(color: [f32; 4], num: usize) -> Vec<f32> {
     color.iter().cloned().cycle().take(num*4).collect()
@@ -20,16 +23,88 @@ impl Mesh {
     pub fn from(mesh: tobj::Mesh, color: [f32; 4]) -> Self {
         let num_verts = mesh.positions.len() / 3;
         let index_count = mesh.indices.len() as i32;
-        Mesh {
+        let mut m = Mesh {
             vertices: mesh.positions,
             normals: mesh.normals,
             indices: mesh.indices,
             colors: generate_color_vec(color, num_verts),
             index_count,
-            vao_id: 0
-        }
+            vao_id: 0,
+        };
+        unsafe { m.vao_id = m.create_vao(); }
+        m
+    }
+
+    unsafe fn create_vao(&self) -> u32 {
+        // Let OpenGL generate the VAO ID
+        let mut vao_id: u32 = 0;
+        gl::GenVertexArrays(1, &mut vao_id);
+        gl::BindVertexArray(vao_id);
+
+        // -- vertex buffer --
+        let mut vertices_vbo_id: u32 = 0;
+        gl::GenBuffers(1, &mut vertices_vbo_id);
+        gl::BindBuffer(gl::ARRAY_BUFFER, vertices_vbo_id);
+
+        gl::BufferData(
+            gl::ARRAY_BUFFER, 
+            util::byte_size_of_array(&self.vertices),
+            util::pointer_to_array(&self.vertices), 
+            gl::STATIC_DRAW
+        );
+
+        let vertices_index = 0;
+        gl::VertexAttribPointer(vertices_index, 3, gl::FLOAT, gl::FALSE, util::size_of::<f32>()*3, ptr::null());
+        gl::EnableVertexAttribArray(vertices_index);
+
+        // -- color buffer --
+        let mut colors_vbo_id: u32 = 0;
+        gl::GenBuffers(1, &mut colors_vbo_id);
+        gl::BindBuffer(gl::ARRAY_BUFFER, colors_vbo_id);
+
+        gl::BufferData(
+            gl::ARRAY_BUFFER, 
+            util::byte_size_of_array(&self.colors),
+            util::pointer_to_array(&self.colors), 
+            gl::STATIC_DRAW
+        );
+
+        let colors_index = 1;
+        gl::VertexAttribPointer(colors_index, 4, gl::FLOAT, gl::FALSE, util::size_of::<f32>()*4, ptr::null());
+        gl::EnableVertexAttribArray(colors_index);
+
+        // -- normal buffer --
+        let mut normals_vbo_id: u32 = 0;
+        gl::GenBuffers(1, &mut normals_vbo_id);
+        gl::BindBuffer(gl::ARRAY_BUFFER, normals_vbo_id);
+
+        gl::BufferData(
+            gl::ARRAY_BUFFER,
+            util::byte_size_of_array(&self.normals),
+            util::pointer_to_array(&self.normals),
+            gl::STATIC_DRAW
+        );
+
+        let normals_index = 2;
+        gl::VertexAttribPointer(normals_index, 3, gl::FLOAT, gl::FALSE, util::size_of::<f32>()*3, ptr::null());
+        gl::EnableVertexAttribArray(normals_index);
+
+        // -- index buffer --
+        let mut ibo_id: u32 = 0;
+        gl::GenBuffers(1, &mut ibo_id);
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ibo_id);
+
+        gl::BufferData(
+            gl::ELEMENT_ARRAY_BUFFER, 
+            util::byte_size_of_array(&self.indices), 
+            util::pointer_to_array(&self.indices), 
+            gl::STATIC_DRAW
+        );
+
+        return vao_id;
     }
 }
+
 
 // Lunar terrain
 

@@ -97,7 +97,6 @@ fn main() {
         let meshes = draw::load_models();
         let nodes = draw::setup_scene_graph(&meshes);
         let mut world = draw::World {
-            meshes: meshes,
             nodes: nodes
         };
 

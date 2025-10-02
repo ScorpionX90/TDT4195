@@ -2,39 +2,13 @@ use crate::shader::Shader;
 use crate::scene_graph::SceneNode;
 
 use std::collections::HashMap;
-use std::{ mem, ptr, os::raw::c_void };
+use std::ptr;
 use std::mem::ManuallyDrop;
 use std::pin::Pin;
 
 use crate::mesh::{ Mesh, Terrain, Helicopter };
 use crate::toolbox;
 
-// Get the size of an arbitrary array of numbers measured in bytes
-// Example usage:  byte_size_of_array(my_array)
-fn byte_size_of_array<T>(val: &[T]) -> isize {
-    std::mem::size_of_val(&val[..]) as isize
-}
-
-// Get the OpenGL-compatible pointer to an arbitrary array of numbers
-// Example usage:  pointer_to_array(my_array)
-fn pointer_to_array<T>(val: &[T]) -> *const c_void {
-    &val[0] as *const T as *const c_void
-}
-
-// Get the size of the given type in bytes
-// Example usage:  size_of::<u64>()
-fn size_of<T>() -> i32 {
-    mem::size_of::<T>() as i32
-}
-
-// Get an offset in bytes for n units of type T, represented as a relative pointer
-// Example usage:  offset::<u64>(4)
-// Get an offset in bytes for n units of type T, represented as a relative pointer
-// Example usage:  offset::<u64>(4)
-fn offset<T>(n: u32) -> *const c_void {
-    (n * mem::size_of::<T>() as u32) as *const c_void
-}
-// ptr::null()
 
 unsafe fn draw_scene(node: &SceneNode,
     view_projection_matrix: &glm::Mat4,
@@ -70,78 +44,7 @@ unsafe fn draw_scene(node: &SceneNode,
     }
 }
                 
-// draw.rs - Replace create_vao function
-unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colors: &Vec<f32>, normals: &Vec<f32>) -> u32 {
-    // Let OpenGL generate the VAO ID
-    let mut vao_id: u32 = 0;
-    gl::GenVertexArrays(1, &mut vao_id);
-    gl::BindVertexArray(vao_id);
-
-    // -- vertex buffer --
-    let mut vertices_vbo_id: u32 = 0;
-    gl::GenBuffers(1, &mut vertices_vbo_id);
-    gl::BindBuffer(gl::ARRAY_BUFFER, vertices_vbo_id);
-
-    gl::BufferData(
-        gl::ARRAY_BUFFER, 
-        byte_size_of_array(vertices),
-        pointer_to_array(vertices), 
-        gl::STATIC_DRAW
-    );
-
-    let vertices_index = 0;
-    gl::VertexAttribPointer(vertices_index, 3, gl::FLOAT, gl::FALSE, size_of::<f32>()*3, ptr::null());
-    gl::EnableVertexAttribArray(vertices_index);
-
-    // -- color buffer --
-    let mut colors_vbo_id: u32 = 0;
-    gl::GenBuffers(1, &mut colors_vbo_id);
-    gl::BindBuffer(gl::ARRAY_BUFFER, colors_vbo_id);
-
-    gl::BufferData(
-        gl::ARRAY_BUFFER, 
-        byte_size_of_array(colors),
-        pointer_to_array(colors), 
-        gl::STATIC_DRAW
-    );
-
-    let colors_index = 1;
-    gl::VertexAttribPointer(colors_index, 4, gl::FLOAT, gl::FALSE, size_of::<f32>()*4, ptr::null());
-    gl::EnableVertexAttribArray(colors_index);
-
-    // -- normal buffer --
-    let mut normals_vbo_id: u32 = 0;
-    gl::GenBuffers(1, &mut normals_vbo_id);
-    gl::BindBuffer(gl::ARRAY_BUFFER, normals_vbo_id);
-
-    gl::BufferData(
-        gl::ARRAY_BUFFER,
-        byte_size_of_array(normals),
-        pointer_to_array(normals),
-        gl::STATIC_DRAW
-    );
-
-    let normals_index = 2;
-    gl::VertexAttribPointer(normals_index, 3, gl::FLOAT, gl::FALSE, size_of::<f32>()*3, ptr::null());
-    gl::EnableVertexAttribArray(normals_index);
-
-    // -- index buffer --
-    let mut ibo_id: u32 = 0;
-    gl::GenBuffers(1, &mut ibo_id);
-    gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ibo_id);
-
-    gl::BufferData(
-        gl::ELEMENT_ARRAY_BUFFER, 
-        byte_size_of_array(indices), 
-        pointer_to_array(indices), 
-        gl::STATIC_DRAW
-    );
-
-    return vao_id;
-}
-
 pub struct World {
-    pub meshes: HashMap<Nodes, Mesh>,
     pub nodes: HashMap<Nodes, ManuallyDrop<Pin<Box<SceneNode>>>>,
 }
 
@@ -157,30 +60,15 @@ pub enum Nodes {
 }
 
 pub fn load_models() -> HashMap<Nodes, Mesh> {
-    let mut lunarsurface = Terrain::load(&"resources/lunarsurface.obj");
     let helicopter = Helicopter::load(&"resources/helicopter.obj");
-    let mut heli_body = helicopter.body;
-    let mut heli_door = helicopter.door;
-    let mut heli_main_rotor = helicopter.main_rotor;
-    let mut heli_tail_rotor = helicopter.tail_rotor;
-
-    unsafe { 
-        lunarsurface.vao_id = create_vao(&lunarsurface.vertices, &lunarsurface.indices, &lunarsurface.colors, &lunarsurface.normals);
-        heli_body.vao_id = create_vao(&heli_body.vertices, &heli_body.indices, &heli_body.colors, &heli_body.normals);
-        heli_door.vao_id = create_vao(&heli_door.vertices, &heli_door.indices, &heli_door.colors, &heli_door.normals);
-        heli_main_rotor.vao_id = create_vao(&heli_main_rotor.vertices, &heli_main_rotor.indices, &heli_main_rotor.colors, &heli_main_rotor.normals);
-        heli_tail_rotor.vao_id = create_vao(&heli_tail_rotor.vertices, &heli_tail_rotor.indices, &heli_tail_rotor.colors, &heli_tail_rotor.normals);
-    }
-
-    return HashMap::from([ 
-        (Nodes::LunarSurface, lunarsurface),
-        (Nodes::HeliBody, heli_body),
-        (Nodes::HeliDoor, heli_door),
-        (Nodes::HeliMainRotor, heli_main_rotor),
-        (Nodes::HeliTailRotor, heli_tail_rotor),
-    ]);
+    HashMap::from([
+        (Nodes::LunarSurface, Terrain::load(&"resources/lunarsurface.obj")),
+        (Nodes::HeliBody, helicopter.body),
+        (Nodes::HeliDoor, helicopter.door),
+        (Nodes::HeliMainRotor, helicopter.main_rotor),
+        (Nodes::HeliTailRotor, helicopter.tail_rotor),
+    ])
 }
-
 
 pub fn setup_scene_graph(meshes: &HashMap<Nodes, Mesh>) -> HashMap<Nodes, ManuallyDrop<Pin<Box<SceneNode>>>> {
     let mut nodes = HashMap::new();
