@@ -57,17 +57,42 @@ pub enum Nodes {
     SceneRoot,
 }
 
+pub struct ChaseCamera {
+    pub position: glm::Vec3,
+    pub target: glm::Vec3,
+    pub radius: f32, // set to big number to get normal camera
+    pub perspective: glm::Mat4,
+    pitch: f32, 
+    yaw: f32
+}
+
+impl ChaseCamera {
+    pub fn new(radius: f32, perspective: glm::Mat4) -> Self {
+        ChaseCamera { 
+            position: glm::vec3(100.0, 35.0, 0.0), 
+            target: glm::vec3(0.0, 0.0, 0.0),
+            radius,
+            perspective,
+            pitch: 0.0,
+            yaw: 0.0
+        }
+    }
+}
+                
 pub struct World {
     pub nodes: HashMap<Nodes, Vec<ManuallyDrop<Pin<Box<SceneNode>>>>>,
-    pub anim_ctxs: Vec<AnimCTX>
+    pub anim_ctxs: Vec<AnimCTX>,
+    pub camera: ChaseCamera,
+    pub model_transformation: glm::Mat4
 }
 
 impl World {
-    pub fn new() -> Self {
+    pub fn new(radius: f32, perspective: glm::Mat4) -> Self {
         let meshes = Self::load_models();
         let nodes = Self::setup_scene_graph(&meshes);
         let anim_ctxs:Vec<AnimCTX> = Vec::new();
-        World { nodes, anim_ctxs }
+        let camera = ChaseCamera::new(radius, perspective);
+        World { nodes, anim_ctxs, camera, model_transformation: glm::identity() }
     }
 
     fn load_models() -> HashMap<Nodes, Mesh> {
@@ -146,22 +171,48 @@ impl World {
         return nodes;
     }
 
-    pub fn update(&mut self, elapsed: f32, perspective: glm::Mat4, transformation: glm::Mat4, shader: &Shader) {
-        let transform_thus_far = perspective * transformation;
+    fn view_matrix(&self) -> glm::Mat4 {
+        glm::look_at(
+            &self.camera.position,
+            &self.camera.target,
+            &glm::vec3(0.0, 1.0, 0.0)
+        )
+    }
+
+    pub fn update(&mut self, elapsed: f32, shader: &Shader) {
         let rotor_speed = 60.0;
 
+        // update all helicopter positions
         for i in 0..self.nodes[&Nodes::HeliRoot].len() {
-            // let iter_heli_heading = toolbox::simple_heading_animation(elapsed + i as f32 * 1.6f32);
-            // let heli_root = &mut self.nodes.get_mut(&Nodes::HeliRoot).unwrap()[i];
-            // heli_root.position.x = iter_heli_heading.x;
-            // heli_root.position.z = iter_heli_heading.z;
-            // heli_root.rotation.z = iter_heli_heading.roll;
-            // heli_root.rotation.y = iter_heli_heading.yaw;
-            // heli_root.rotation.x = iter_heli_heading.pitch;
+            let iter_heli_heading = toolbox::simple_heading_animation(elapsed + i as f32 * 1.6f32);
+            let heli_root = &mut self.nodes.get_mut(&Nodes::HeliRoot).unwrap()[i];
+            heli_root.position.x = iter_heli_heading.x;
+            heli_root.position.y = 15.0;
+            heli_root.position.z = iter_heli_heading.z;
+            heli_root.rotation.z = iter_heli_heading.roll;
+            heli_root.rotation.y = iter_heli_heading.yaw;
+            heli_root.rotation.x = iter_heli_heading.pitch;
 
             self.nodes.get_mut(&Nodes::HeliMainRotor).unwrap()[i].rotation.y = elapsed * rotor_speed;
             self.nodes.get_mut(&Nodes::HeliTailRotor).unwrap()[i].rotation.x = elapsed * rotor_speed;
         }
+
+        // camera chase after target
+        let camera_target = &self.nodes[&Nodes::HeliRoot][0];
+        self.camera.target = camera_target.position;
+        let distance = glm::distance(&self.camera.position, &self.camera.target);
+        let direction = glm::normalize(&(self.camera.target - self.camera.position));
+        if distance > self.camera.radius {
+            self.camera.position += direction * (distance - self.camera.radius);
+        }
+
+        // update camera angles
+        self.camera.yaw = direction.z.atan2(direction.x) + glm::half_pi::<f32>();
+        let horizontal_distance = (direction.x * direction.x + direction.z * direction.z).sqrt();
+        self.camera.pitch = direction.y.atan2(horizontal_distance);
+
+
+        let transform_thus_far = self.camera.perspective * self.view_matrix();
 
         // Build scene graph on the fly or store scene_root separately
         unsafe {

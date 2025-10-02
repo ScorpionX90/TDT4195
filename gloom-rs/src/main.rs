@@ -91,22 +91,12 @@ fn main() {
             println!("GLSL\t: {}", util::get_gl_string(gl::SHADING_LANGUAGE_VERSION));
         }
 
-        let mut transformation: glm::Mat4;
-        let perspective: glm::Mat4 = glm::perspective(
+        let mut world = draw::World::new(30.0, glm::perspective(
             window_aspect_ratio,
             120.0f32,
             1.0f32,
             1000.0f32
-        );
-
-        let mut world = draw::World::new();
-
-        let mut camera_position: glm::Vec3 = glm::vec3(0.0, 0.0, 0.0);
-        let translation_speed = 30.0f32;
-        let rotation_speed = 1.5f32;
-
-        let mut yaw = 0.0f32;
-        let mut pitch = 0.0f32;
+        ));
 
         // == // Set up your shaders here
 
@@ -135,9 +125,6 @@ fn main() {
             let delta_time = now.duration_since(previous_frame_time).as_secs_f32();
             previous_frame_time = now;
 
-            let angle_speed = rotation_speed * delta_time;
-            let trans_speed: f32 = translation_speed * delta_time;
-
             // Handle resize events
             if let Ok(mut new_size) = window_size.lock() {
                 if new_size.2 {
@@ -149,34 +136,10 @@ fn main() {
                 }
             }
 
-            // Calculate forward vector, and right vector in x-z plane for relative yaw based translation.
-            let f_xz = glm::vec3(-yaw.sin(), yaw.cos(), 0.0);
-            let r_xz = glm::rotation2d(glm::half_pi()) * f_xz;
-
-            let forward = glm::vec3(f_xz.x, f_xz.z, f_xz.y);
-            let right = glm::vec3(r_xz.x, r_xz.z, r_xz.y);
             // Handle keyboard input
             if let Ok(keys) = pressed_keys.lock() {
                 for key in keys.iter() {
                     match key {
-                        VirtualKeyCode::W => { 
-                            camera_position += forward * trans_speed;
-                        }
-                        VirtualKeyCode::A => { 
-                            camera_position -= right * trans_speed;
-                        }
-                        VirtualKeyCode::S => { 
-                            camera_position -= forward * trans_speed;
-                        }
-                        VirtualKeyCode::D => { 
-                            camera_position += right * trans_speed;
-                        }
-                        VirtualKeyCode::Space => { 
-                            camera_position.y -= trans_speed;
-                        }
-                        VirtualKeyCode::LShift => { 
-                            camera_position.y += trans_speed;
-                        }
                         VirtualKeyCode::E => {
 
                             let ptr = &world.nodes[&Nodes::HeliDoor][0];
@@ -196,27 +159,6 @@ fn main() {
                             }
                         }
 
-                        VirtualKeyCode::Down => { 
-                            pitch += angle_speed;
-                            pitch = pitch.clamp(
-                                -std::f32::consts::FRAC_PI_2,
-                                std::f32::consts::FRAC_PI_2
-                            );
-                        }
-                        VirtualKeyCode::Up => { 
-                            pitch -= angle_speed;
-                            pitch = pitch.clamp(
-                                -std::f32::consts::FRAC_PI_2,
-                                std::f32::consts::FRAC_PI_2
-                            );
-                        }
-                        VirtualKeyCode::Right => { 
-                            yaw += angle_speed;
-                        }
-                        VirtualKeyCode::Left => { 
-                            yaw -= angle_speed;
-                        }
-
                         _ => { }
                     }
                 }
@@ -230,14 +172,6 @@ fn main() {
                 *delta = (0.0, 0.0); // reset when done
             }
 
-            let yaw_matrix = glm::rotation(yaw, &glm::vec3(0.0, 1.0, 0.0));
-            let pitch_matrix = glm::rotation(pitch, &glm::vec3(1.0, 0.0, 0.0));
-            let translation_matrix = glm::translation(&(camera_position));
-            
-            // apply yaw dependent pitch first.
-            let rotation_matrix = pitch_matrix * yaw_matrix;
-            transformation = rotation_matrix * translation_matrix;
-
             unsafe {
                 simple_shader.activate();
 
@@ -245,7 +179,7 @@ fn main() {
                 gl::ClearColor(40.0f32 / 256.0f32, 42.0f32 / 256.0f32, 54.0f32 / 256.0f32, 1.0); // night sky
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                world.update(elapsed, perspective, transformation, &simple_shader);
+                world.update(elapsed, &simple_shader);
                 
                 // Display the new color buffer on the display
                 context.swap_buffers().unwrap(); // we use "double buffering" to avoid artifacts
