@@ -90,19 +90,12 @@ fn main() {
             println!("GLSL\t: {}", util::get_gl_string(gl::SHADING_LANGUAGE_VERSION));
         }
 
-        let mut transformation: glm::Mat4;
-        let mut world = draw::World::new(100.0, glm::perspective(
+        let mut world = draw::World::new(30.0, glm::perspective(
             window_aspect_ratio,
             120.0f32,
             1.0f32,
             1000.0f32
         ));
-
-        let translation_speed = 30.0f32;
-        let rotation_speed = 1.5f32;
-
-        let mut yaw = 0.0f32;
-        let mut pitch = 0.0f32;
 
         // == // Set up your shaders here
 
@@ -131,9 +124,6 @@ fn main() {
             let delta_time = now.duration_since(previous_frame_time).as_secs_f32();
             previous_frame_time = now;
 
-            let angle_speed = rotation_speed * delta_time;
-            let trans_speed: f32 = translation_speed * delta_time;
-
             // Handle resize events
             if let Ok(mut new_size) = window_size.lock() {
                 if new_size.2 {
@@ -145,62 +135,10 @@ fn main() {
                 }
             }
 
-            // Calculate forward vector, and right vector in x-z plane for relative yaw based translation.
-            let f_xz = glm::vec3(-yaw.sin(), yaw.cos(), 0.0);
-            let r_xz = glm::rotation2d(glm::half_pi()) * f_xz;
-
-            let forward = glm::vec3(f_xz.x, f_xz.z, f_xz.y);
-            let right = glm::vec3(r_xz.x, r_xz.z, r_xz.y);
             // Handle keyboard input
             if let Ok(keys) = pressed_keys.lock() {
                 for key in keys.iter() {
                     match key {
-                        VirtualKeyCode::W => { 
-                            world.camera.position += forward * trans_speed;
-                        }
-                        VirtualKeyCode::A => { 
-                            world.camera.position -= right * trans_speed;
-                        }
-                        VirtualKeyCode::S => { 
-                            world.camera.position -= forward * trans_speed;
-                        }
-                        VirtualKeyCode::D => { 
-                            world.camera.position += right * trans_speed;
-                        }
-                        VirtualKeyCode::Space => { 
-                            world.camera.position.y -= trans_speed;
-                        }
-                        VirtualKeyCode::LShift => { 
-                            world.camera.position.y += trans_speed;
-                        }
-                        VirtualKeyCode::E => {
-                            world.anim_ctxs.push(AnimCTX{
-                                stime : elapsed, 
-                                rand_seed: rand::random::<f32>()
-                            });
-                        }
-
-                        VirtualKeyCode::Down => { 
-                            pitch += angle_speed;
-                            pitch = pitch.clamp(
-                                -std::f32::consts::FRAC_PI_2,
-                                std::f32::consts::FRAC_PI_2
-                            );
-                        }
-                        VirtualKeyCode::Up => { 
-                            pitch -= angle_speed;
-                            pitch = pitch.clamp(
-                                -std::f32::consts::FRAC_PI_2,
-                                std::f32::consts::FRAC_PI_2
-                            );
-                        }
-                        VirtualKeyCode::Right => { 
-                            yaw += angle_speed;
-                        }
-                        VirtualKeyCode::Left => { 
-                            yaw -= angle_speed;
-                        }
-
                         _ => { }
                     }
                 }
@@ -213,14 +151,6 @@ fn main() {
 
                 *delta = (0.0, 0.0); // reset when done
             }
-
-            let yaw_matrix = glm::rotation(yaw, &glm::vec3(0.0, 1.0, 0.0));
-            let pitch_matrix = glm::rotation(pitch, &glm::vec3(1.0, 0.0, 0.0));
-            let translation_matrix = glm::translation(&(world.camera.position));
-            
-            // apply yaw dependent pitch first.
-            let rotation_matrix = pitch_matrix * yaw_matrix;
-            transformation = rotation_matrix * translation_matrix;
 
             unsafe {
                 simple_shader.activate();

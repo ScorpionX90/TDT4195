@@ -115,7 +115,6 @@ impl World {
         let lunar_mesh = &meshes[&Nodes::LunarSurface];
         let mut lunar_node = SceneNode::from_vao(lunar_mesh.vao_id, lunar_mesh.index_count);
         lunar_node.reference_point = glm::vec3(0.0, 0.0, 0.0);
-        lunar_node.position.y = -10.0;
         nodes.insert(Nodes::LunarSurface, vec![lunar_node]);
 
         nodes.insert(Nodes::HeliRoot, Vec::new());
@@ -183,14 +182,16 @@ impl World {
     pub fn update(&mut self, elapsed: f32, shader: &Shader) {
         let rotor_speed = 60.0;
 
+        // update all helicopter positions
         for i in 0..self.nodes[&Nodes::HeliRoot].len() {
-            // let iter_heli_heading = toolbox::simple_heading_animation(elapsed + i as f32 * 1.6f32);
-            // let heli_root = &mut self.nodes.get_mut(&Nodes::HeliRoot).unwrap()[i];
-            // heli_root.position.x = iter_heli_heading.x;
-            // heli_root.position.z = iter_heli_heading.z;
-            // heli_root.rotation.z = iter_heli_heading.roll;
-            // heli_root.rotation.y = iter_heli_heading.yaw;
-            // heli_root.rotation.x = iter_heli_heading.pitch;
+            let iter_heli_heading = toolbox::simple_heading_animation(elapsed + i as f32 * 1.6f32);
+            let heli_root = &mut self.nodes.get_mut(&Nodes::HeliRoot).unwrap()[i];
+            heli_root.position.x = iter_heli_heading.x;
+            heli_root.position.y = 15.0;
+            heli_root.position.z = iter_heli_heading.z;
+            heli_root.rotation.z = iter_heli_heading.roll;
+            heli_root.rotation.y = iter_heli_heading.yaw;
+            heli_root.rotation.x = iter_heli_heading.pitch;
 
             self.nodes.get_mut(&Nodes::HeliMainRotor).unwrap()[i].rotation.y = elapsed * rotor_speed;
             self.nodes.get_mut(&Nodes::HeliTailRotor).unwrap()[i].rotation.x = elapsed * rotor_speed;
