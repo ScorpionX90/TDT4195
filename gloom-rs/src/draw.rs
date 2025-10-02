@@ -64,7 +64,7 @@ impl World {
     pub fn new() -> Self {
         let meshes = Self::load_models();
         let nodes = Self::setup_scene_graph(&meshes);
-        World { meshes, nodes }
+        World { nodes }
     }
 
     fn load_models() -> HashMap<Nodes, Mesh> {
