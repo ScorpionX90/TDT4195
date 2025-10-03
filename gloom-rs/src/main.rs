@@ -18,13 +18,12 @@ mod mesh;
 mod scene_graph;
 mod toolbox;
 mod draw;
+mod camera;
 
 use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState::{Pressed, Released}, VirtualKeyCode::{self, *}};
 use glutin::event_loop::ControlFlow;
 
-
 use crate::draw::Nodes;
-use crate::scene_graph::SceneNode;
 use crate::toolbox::AnimCTX;
 
 // initial window size
@@ -136,6 +135,8 @@ fn main() {
                 }
             }
 
+            let translation_speed = 1.0;
+
             // Handle keyboard input
             if let Ok(keys) = pressed_keys.lock() {
                 for key in keys.iter() {
@@ -159,6 +160,18 @@ fn main() {
                             }
                         }
 
+                        VirtualKeyCode::Right => { 
+                            world.camera.position -= world.camera.right() * translation_speed;
+                        }
+                        VirtualKeyCode::Left => { 
+                            world.camera.position += world.camera.right() * translation_speed;
+                        }
+                        VirtualKeyCode::Down => { 
+                            world.camera.position.y -= translation_speed;
+                        }
+                        VirtualKeyCode::Up => { 
+                            world.camera.position.y += translation_speed;
+                        }
                         _ => { }
                     }
                 }
