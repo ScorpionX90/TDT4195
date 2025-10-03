@@ -61,12 +61,14 @@ pub enum Nodes {
 }
 
 pub struct PlayerHelicopter {
-    node_index: usize
+    node_index: usize,
+    pub acceleration: glm::Vec3,
+    pub velocity: glm::Vec3
 }
 
 impl PlayerHelicopter {
     pub fn new(node_index: usize) -> Self {
-        Self { node_index }
+        Self { node_index, acceleration: glm::zero(), velocity: glm::zero() }
     }
 
     // pub fn get_node<'a>(&self, world: &'a World) -> &'a ManuallyDrop<Pin<Box<SceneNode>>> {
@@ -180,7 +182,36 @@ impl World {
         return nodes;
     }
 
-    pub fn update(&mut self, elapsed: f32, shader: &Shader) {
+    pub fn update(&mut self, elapsed: f32, delta_time: f32, shader: &Shader) {
+        // update player velocity
+        if self.player.acceleration.norm_squared() > 0.0 {
+            self.player.velocity += self.player.acceleration * delta_time;
+        }
+
+        let drag_coefficient = 0.4f32;
+        self.player.velocity *= drag_coefficient.powf(delta_time);
+
+        let velocity = self.player.velocity;
+        self.get_player_node_mut().position += velocity * delta_time;
+
+        let min_velocity_threshold = 0.01;
+        if self.player.velocity.norm() < min_velocity_threshold {
+            self.player.velocity = glm::zero();
+        }
+
+        self.player.acceleration = glm::zero();
+
+        // magic tilt rotation magic
+        let rotation = self.get_player_node().rotation;
+        let tilt_factor = 1.0 / 60.0;
+
+        let local_vel_x = -self.player.velocity.x * rotation.y.cos() + self.player.velocity.z * rotation.y.sin();
+        let local_vel_z = self.player.velocity.x * rotation.y.sin() + self.player.velocity.z * rotation.y.cos();
+
+        self.get_player_node_mut().rotation.x = local_vel_z * tilt_factor;
+        self.get_player_node_mut().rotation.z = -local_vel_x * tilt_factor;
+
+
         let rotor_speed = 60.0;
 
         // update all helicopter positions
