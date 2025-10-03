@@ -58,10 +58,29 @@ pub enum Nodes {
     SceneRoot,
 }
 
+pub struct PlayerHelicopter {
+    node_index: usize
+}
+
+impl PlayerHelicopter {
+    pub fn new(node_index: usize) -> Self {
+        Self { node_index }
+    }
+
+    // pub fn get_node<'a>(&self, world: &'a World) -> &'a ManuallyDrop<Pin<Box<SceneNode>>> {
+    //     &world.nodes[&Nodes::HeliRoot][self.node_index]
+    // }
+    //
+    // pub fn get_node_mut<'a>(&self, world: &'a mut World) -> &'a mut ManuallyDrop<Pin<Box<SceneNode>>> {
+    //     &mut world.nodes.get_mut(&Nodes::HeliRoot).unwrap()[self.node_index]
+    // }
+}
+
 pub struct World {
     pub nodes: HashMap<Nodes, Vec<ManuallyDrop<Pin<Box<SceneNode>>>>>,
     pub anim_ctxs: Vec<AnimCTX>,
     pub camera: ChaseCamera,
+    pub player: PlayerHelicopter
 }
 
 impl World {
@@ -70,7 +89,17 @@ impl World {
         let nodes = Self::setup_scene_graph(&meshes);
         let anim_ctxs:Vec<AnimCTX> = Vec::new();
         let camera = ChaseCamera::new(radius, perspective);
-        World { nodes, anim_ctxs, camera }
+        let player = PlayerHelicopter::new(0);
+        World { nodes, anim_ctxs, camera, player  }
+    }
+
+    pub fn get_player_node_mut(&mut self) -> &mut ManuallyDrop<Pin<Box<SceneNode>>> {
+        let node_index = self.player.node_index;
+        &mut self.nodes.get_mut(&Nodes::HeliRoot).unwrap()[node_index]
+    }
+
+    pub fn get_player_node(&self) -> &ManuallyDrop<Pin<Box<SceneNode>>> {
+        &self.nodes[&Nodes::HeliRoot][self.player.node_index]
     }
 
     fn load_models() -> HashMap<Nodes, Mesh> {
@@ -85,7 +114,7 @@ impl World {
     }
 
     fn setup_scene_graph(meshes: &HashMap<Nodes, Mesh>) -> HashMap<Nodes, Vec<ManuallyDrop<Pin<Box<SceneNode>>>>> {
-        let num_helicopters = 1;
+        let num_helicopters = 5;
         let mut nodes: HashMap<Nodes, Vec<ManuallyDrop<Pin<Box<SceneNode>>>>> = HashMap::new();
 
         nodes.insert(Nodes::SceneRoot, vec![SceneNode::new()]);
@@ -154,6 +183,7 @@ impl World {
 
         // update all helicopter positions
         for i in 0..self.nodes[&Nodes::HeliRoot].len() {
+            if i == self.player.node_index { continue; }
             let iter_heli_heading = toolbox::simple_heading_animation(elapsed + i as f32 * 1.6f32);
             let heli_root = &mut self.nodes.get_mut(&Nodes::HeliRoot).unwrap()[i];
             heli_root.position.x = iter_heli_heading.x;
@@ -168,7 +198,7 @@ impl World {
         }
 
         // camera chase after target
-        let camera_target = &self.nodes[&Nodes::HeliRoot][0];
+        let camera_target = self.get_player_node();
         self.camera.target = camera_target.position;
         let distance = glm::distance(&self.camera.position, &self.camera.target);
         let direction = glm::normalize(&(self.camera.target - self.camera.position));
@@ -187,15 +217,15 @@ impl World {
         while i < self.anim_ctxs.len() {
             let transform = (self.anim_ctxs[i].anim_func)(elapsed, &mut self.anim_ctxs[i]);
 
-            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].position.x = transform.x;
-            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].position.y = transform.y;
-            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].position.z = transform.z;
-            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].rotation.x = transform.pitch;
-            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].rotation.y = transform.yaw;
-            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0].rotation.z = transform.roll;
+            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[self.player.node_index].position.x = transform.x;
+            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[self.player.node_index].position.y = transform.y;
+            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[self.player.node_index].position.z = transform.z;
+            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[self.player.node_index].rotation.x = transform.pitch;
+            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[self.player.node_index].rotation.y = transform.yaw;
+            self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[self.player.node_index].rotation.z = transform.roll;
 
             unsafe {
-                draw_scene(&self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[0], &transform_thus_far, glm::identity(), &shader, elapsed);
+                draw_scene(&self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[self.player.node_index], &transform_thus_far, glm::identity(), &shader, elapsed);
             }
 
             if transform.y <= -1000.0f32 {

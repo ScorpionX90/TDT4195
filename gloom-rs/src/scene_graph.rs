@@ -43,6 +43,18 @@ impl SceneNode {
         })))
     }
 
+    pub fn forward(&self) -> glm::Vec3 {
+        glm::normalize(&glm::rotate_y_vec3(&glm::vec3(0.0, 0.0, -1.0), self.rotation.y))
+    }
+
+    pub fn up(&self) -> glm::Vec3 {
+        glm::vec3(0.0, 1.0, 0.0)
+    }
+
+    pub fn right(&self) -> glm::Vec3 {
+        glm::normalize(&glm::cross(&self.forward(), &self.up()))
+    }
+
     pub fn from_vao(vao_id: u32, index_count: i32) -> Node {
         ManuallyDrop::new(Pin::new(Box::new(SceneNode {
             position        : glm::zero(),
