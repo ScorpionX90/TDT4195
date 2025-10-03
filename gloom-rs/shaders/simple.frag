@@ -8,9 +8,9 @@ out vec4 color;
 void main()
 {
     // Constants
-    vec3 i_ambient = vec3(0.7);
-    vec3 i_diffuse = vec3(0.6);
-    vec3 i_spec = vec3(0.8);
+    vec3 i_ambient = vec3(0.4);
+    vec3 i_diffuse = vec3(0.8);
+    vec3 i_spec = vec3(1.2);
 
     float k_ambient = 0.4;
     float k_diffuse = 0.7;
