@@ -103,7 +103,7 @@ impl World {
 
         for _i in 0..num_helicopters {
             let mut heli_root = SceneNode::new();
-            heli_root.reference_point = glm::vec3(20.0, 10.0, 0.0);
+            heli_root.reference_point = glm::vec3(0.0, 0.0, 0.0);
 
             let mut heli_body = SceneNode::from_vao(meshes[&Nodes::HeliBody].vao_id, meshes[&Nodes::HeliBody].index_count);
             heli_body.reference_point = glm::vec3(0.0, 0.0, 0.0);
