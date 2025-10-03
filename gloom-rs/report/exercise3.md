@@ -84,7 +84,15 @@ coordinated choppers:
 
 ![5 synchronized (non-colliding) helicopters rendered in a loop](../report/images/5-heli.png)
 
-## Optional Tasks (b), c), d) + f))
+## Optional Tasks
+
+### Optional a)
+
+Implementing the Phong lighting model is a simple case of implementing the phong equation in the fragment shader. To achieve this, the viewing vector of each vertex had to be passed to the fragment. Based on how our camera is implemented, this vector is allways the inverse of the final vertex transform `glposition`. We pass this to the fragment shader, compute the ambient, diffuse and specular components and combine them to a single intensity vector (normalized) which we multiply, with the fragment color vector, thus producing the final color for the fragment. Below is an image of the phong model in action:
+
+Please note that the parameters are not fine-tuned, and the resulting image is a bit 
+
+![The phong model in action](../report/images/phong.png)
 
 ### Optional b)
 
@@ -173,6 +181,12 @@ thereafter unchilding it from the helicopter.
 Finally, the helicopter animationctx is stopped if it "falls out of the world",
 in other words, if its y-position is less than `-1000.0`. At this point the
 scenenode of the door is deleted.
+
+Note the animation does not intend to be very realistic, the sort of cartoonish feel it gives is intentional and adds to the humorous factor of the animation.
+
+A snippet of one possible shot of the animation is shown below.
+
+![A helicopter rejecting its door](../report/images/reject_doors.png)
 
 ### Optional f)
 
