@@ -8,14 +8,14 @@ out vec4 color;
 void main()
 {
     // Constants
-    vec3 i_ambient = vec3(0.4);
+    vec3 i_ambient = vec3(0.7);
     vec3 i_diffuse = vec3(0.6);
     vec3 i_spec = vec3(0.8);
 
-    float k_ambient = 0.5;
-    float k_diffuse = 0.9;
-    float k_spec = 0.6;
-    float alpha = 8;
+    float k_ambient = 0.4;
+    float k_diffuse = 0.7;
+    float k_spec = 0.5;
+    float alpha = 16;
 
     // Light vector
     vec3 L = normalize(vec3(-0.8, 0.5, -0.6));
