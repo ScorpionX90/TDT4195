@@ -11,7 +11,6 @@ extern crate nalgebra_glm as glm;
 use std::ptr;
 use std::thread;
 use std::sync::{Mutex, Arc, RwLock};
-use rand::random;
 
 mod shader;
 mod util;
@@ -19,6 +18,7 @@ mod mesh;
 mod scene_graph;
 mod toolbox;
 mod draw;
+mod camera;
 
 use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState::{Pressed, Released}, VirtualKeyCode::{self, *}};
 use glutin::event_loop::ControlFlow;

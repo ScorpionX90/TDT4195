@@ -8,6 +8,7 @@ use std::pin::Pin;
 
 use crate::mesh::{ Mesh, Terrain, Helicopter };
 use crate::toolbox::{self, open_door, AnimCTX};
+use crate::camera::{ ChaseCamera };
 
 
 unsafe fn draw_scene(node: &SceneNode,
@@ -57,44 +58,10 @@ pub enum Nodes {
     SceneRoot,
 }
 
-pub struct ChaseCamera {
-    pub position: glm::Vec3,
-    pub target: glm::Vec3,
-    pub radius: f32, // set to big number to get normal camera
-    pub perspective: glm::Mat4,
-    pitch: f32, 
-    yaw: f32
-}
-
-impl ChaseCamera {
-    pub fn new(radius: f32, perspective: glm::Mat4) -> Self {
-        ChaseCamera { 
-            position: glm::vec3(100.0, 35.0, 0.0), 
-            target: glm::vec3(0.0, 0.0, 0.0),
-            radius,
-            perspective,
-            pitch: 0.0,
-            yaw: 0.0
-        }
-    }
-
-    pub fn forward(&self) -> glm::Vec3 {
-        let f_xz = glm::vec3(-self.yaw.sin(), self.yaw.cos(), 0.0);
-        glm::vec3(f_xz.x, f_xz.z, f_xz.y)
-    }
-
-    pub fn right(&self) -> glm::Vec3 {
-        let f_xz = glm::vec3(-self.yaw.sin(), self.yaw.cos(), 0.0);
-        let r_xz = glm::rotation2d(glm::half_pi()) * f_xz;
-        glm::vec3(r_xz.x, r_xz.z, r_xz.y)
-    }
-}
-                
 pub struct World {
     pub nodes: HashMap<Nodes, Vec<ManuallyDrop<Pin<Box<SceneNode>>>>>,
     pub anim_ctxs: Vec<AnimCTX>,
     pub camera: ChaseCamera,
-    pub model_transformation: glm::Mat4
 }
 
 impl World {
@@ -103,7 +70,7 @@ impl World {
         let nodes = Self::setup_scene_graph(&meshes);
         let anim_ctxs:Vec<AnimCTX> = Vec::new();
         let camera = ChaseCamera::new(radius, perspective);
-        World { nodes, anim_ctxs, camera, model_transformation: glm::identity() }
+        World { nodes, anim_ctxs, camera }
     }
 
     fn load_models() -> HashMap<Nodes, Mesh> {
@@ -182,14 +149,6 @@ impl World {
         return nodes;
     }
 
-    fn view_matrix(&self) -> glm::Mat4 {
-        glm::look_at(
-            &self.camera.position,
-            &self.camera.target,
-            &glm::vec3(0.0, 1.0, 0.0)
-        )
-    }
-
     pub fn update(&mut self, elapsed: f32, shader: &Shader) {
         let rotor_speed = 60.0;
 
@@ -227,13 +186,7 @@ impl World {
             self.camera.position += direction * (distance - self.camera.radius);
         }
 
-        // update camera angles
-        self.camera.yaw = direction.z.atan2(direction.x) + glm::half_pi::<f32>();
-        let horizontal_distance = (direction.x * direction.x + direction.z * direction.z).sqrt();
-        self.camera.pitch = direction.y.atan2(horizontal_distance);
-
-
-        let transform_thus_far = self.camera.perspective * self.view_matrix();
+        let transform_thus_far = self.camera.perspective * self.camera.view_matrix();
 
         // Build scene graph on the fly or store scene_root separately
         unsafe {
