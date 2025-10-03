@@ -90,7 +90,7 @@ fn main() {
             println!("GLSL\t: {}", util::get_gl_string(gl::SHADING_LANGUAGE_VERSION));
         }
 
-        let mut world = draw::World::new(300.0, glm::perspective(
+        let mut world = draw::World::new(30.0, glm::perspective(
             window_aspect_ratio,
             120.0f32,
             1.0f32,
@@ -136,10 +136,11 @@ fn main() {
             }
 
             let camera_speed = 80.0;
-            let player_move_speed = 60.0;
+            let player_move_speed = 30.0;
             let player_turn_speed = 1.0;
 
             let player_forward = world.get_player_node().forward();
+            let player_up = world.get_player_node().up();
 
             // Handle keyboard input
             if let Ok(keys) = pressed_keys.lock() {
@@ -178,22 +179,22 @@ fn main() {
                         }
 
                         VirtualKeyCode::W => { 
-                            world.get_player_node_mut().position += player_forward * player_move_speed * delta_time;
+                            world.player.acceleration = player_forward * player_move_speed;
                         }
                         VirtualKeyCode::A => { 
                             world.get_player_node_mut().rotation.y += player_turn_speed * delta_time;
                         }
                         VirtualKeyCode::S => { 
-                            world.get_player_node_mut().position -= player_forward * player_move_speed * delta_time;
+                            world.player.acceleration = -player_forward * player_move_speed;
                         }
                         VirtualKeyCode::D => { 
                             world.get_player_node_mut().rotation.y -= player_turn_speed * delta_time;
                         }
                         VirtualKeyCode::Space => {
-                            world.get_player_node_mut().position.y += player_move_speed * delta_time;
+                            world.player.acceleration = player_up * player_move_speed / 2.0;
                         }
                         VirtualKeyCode::LShift => {
-                            world.get_player_node_mut().position.y -= player_move_speed * delta_time;
+                            world.player.acceleration = -player_up * player_move_speed / 2.0;
                         }
 
                         _ => { }
@@ -216,7 +217,7 @@ fn main() {
                 gl::ClearColor(40.0f32 / 256.0f32, 42.0f32 / 256.0f32, 54.0f32 / 256.0f32, 1.0); // night sky
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                world.update(elapsed, &simple_shader);
+                world.update(elapsed, delta_time, &simple_shader);
                 
                 // Display the new color buffer on the display
                 context.swap_buffers().unwrap(); // we use "double buffering" to avoid artifacts
