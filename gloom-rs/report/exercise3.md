@@ -55,7 +55,6 @@ Fixing the lighting is a simple case of appyling the same transform as the objec
 ![Correctly lit, non-rotated helicopter](../report/images/bright_correct_heli.png)
 ![Correctly lit, rotated helicopter](../report/images/dark_correct_heli.png)
 
-
 ## Task 6a)
 
 We solved this by producing and structuring 5 helicopter root `SceneNodes` in a loop during our setup, aswell as running a loop over these nodes during the draw step. Both loops are controlled by a single variable. We discussed reusing a single `SceneNode` and deemed it possible, but settled on the above model as keeping track of the transform for the individual models would be impractical in any other scenario than parameterized animation. And since we wanted to implement player controls for one of the helicopter in the optional tasks, we deemed the reuse somewhat redundant extra complexity. Below is an image of the coordinated choppers:
@@ -66,7 +65,63 @@ We solved this by producing and structuring 5 helicopter root `SceneNodes` in a 
 
 ### Optional b)
 
+The idea is to control the helicopter like an RC-car, because that is quite
+intuitive and gives the same freedom as having it move where it is facing. After
+correctly implementing movement using acceleration and drag, we just have to
+tilt the helicopter in the direction it is facing by some value proportional to
+it's speed.
+
+`struct PlayerHelicopter` mainly has attributes for the acceleration- and
+velocity vectors of the helicopter. Furthermore, we implemented directional unit
+vectors `up`, `right` and `forward` on the `SceenNode` to easily gain an
+orientation of the helicopter. With this, we can set the helicopter's
+acceleration upon keyboard inputs (WASD) and add this to its velocity. We have
+to remember to shrink the velocity on each update, doing so expontentially by
+a drag factor and the `delta_time` variable, such that the helicopter will come
+to a stop.
+
+Combining this with rotation by the y-axis, we obtain RC-car controls. Lastly,
+we have to tilt the helicopter in the direction it's facing using some math.
+
 ### Optional c)
+
+To implement a chase camera we make a `struct ChaseCamera` with the following
+attributes:
+
+- `position`, where the camera currently is in global space.
+- `target`, the position of the object the camera is chasing in global space.
+- `radius`, how far away the target is allowed to be.
+- `perspective`, the matrix from `glm::perspective` that contains information
+  about the camera.
+
+Taking in the `perspective` allows us to encode it outside of global state in
+the program's main loop, keeping state related to the camera inside of this
+struct. We could also have included other parameters such as the camera movement
+speed, but this was kept in the main program for ease of use.
+
+This struct implements some methods as well:
+
+- `view_matrix`, which calculates the view transformation using the cursed
+  `look_at`, using the struct attributes.
+- `forward`, `up` and `right`, methods to calculate the directional unit
+  vectors of the camera. These are useful for moving the camera.
+
+Together with the flight controls of 6b), we obtain an intuitive and responsive
+chase camera that follows the player helicopter.
+
+The behavior emerges from this snippet in the main `update` loop:
+
+```rust
+  let camera_target = self.get_player_node();
+  self.camera.target = camera_target.position;
+  let distance = glm::distance(&self.camera.position, &self.camera.target);
+  let direction = glm::normalize(&(self.camera.target - self.camera.position));
+  if distance > self.camera.radius {
+      self.camera.position += direction * (distance - self.camera.radius);
+  }
+```
+
+Essentially just an "if the target is far away, catch up to it".
 
 ### Optional d)
 
@@ -85,3 +140,4 @@ Finally, the helicopter animationctx is stopped if it "falls out of the world", 
 The cake is a lie
 
 ![](../report/images/easter_egg.png)
+
