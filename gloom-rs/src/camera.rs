@@ -15,7 +15,7 @@ impl ChaseCamera {
         }
     }
 
-    pub(crate) fn view_matrix(&self) -> glm::Mat4 {
+    pub fn view_matrix(&self) -> glm::Mat4 {
         glm::look_at(
             &self.position,
             &self.target,
