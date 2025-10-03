@@ -2,7 +2,6 @@ extern crate nalgebra_glm as glm;
 use std::f64::consts::PI;
 
 use glm::Vec3;
-use tobj::Mesh;
 
 pub struct Heading {
     pub x     : f32,
@@ -59,25 +58,38 @@ pub struct AnimCTX {
 pub fn open_door(time: f32, ctx: &AnimCTX) -> FullHeading {
     
     let t = time - ctx.stime;
+    let x_speed = 90.0;
+    let y_speed = 6.0;
 
-    let x_speed = 5.0f32;
-    let y_speed = 3.0f32;
-    let sim_speed = 5.0f32;
+    // Local transformation
+    let local_offset = glm::vec3(
+        ctx.rand_seed * x_speed * t,                    // forward (x)
+        y_speed * t - 0.5 * 9.81 * t.powi(2),           // vertical (y)
+        ctx.rand_seed * 5.0 * t                         // sideways (z)
+    );
 
-    let xpos: f32 = ctx.start_pos.x + 5.0f32 * ctx.rand_seed * x_speed * t;
-    let ypos: f32 = ctx.start_pos.y + -0.5* 9.81f32 * y_speed * t.powf(2.0f32);
-    let zpos: f32 = ctx.start_pos.z + ctx.rand_seed * 5.0f32 * t;
+    // Locally rotated animation vector
+    let rotated_offset = glm::rotate_vec3(
+        &local_offset,
+        ctx.start_rot.y,                       
+        &glm::vec3(0.0, 1.0, 0.0)     // rotate around  world up axis (yaw of helicopter)
+    );
 
-    let tilt = ctx.start_rot.x + ctx.rand_seed * sim_speed * y_speed / 12.0f32 * t;
-    let roll = ctx.start_rot.y + ctx.rand_seed * sim_speed * (x_speed * t) / 5.0f32; 
-    let yaw = ctx.start_rot.z + tilt;
+    // Global transformation
+    let pos = ctx.start_pos + rotated_offset;
+
+    // Update rotation as a function of time (dampened for realism)
+    let yaw   = ctx.start_rot.y + ctx.rand_seed  * (x_speed * t/ 4.0) / 5.0;
+    let roll  = ctx.start_rot.z * t / 2.0; // adjust if needed
+    let pitch = ctx.start_rot.x + ctx.rand_seed  * y_speed / 12.0 * t;
 
     FullHeading {
-        x    : xpos as f32,
-        y    : ypos as f32,
-        z    : zpos as f32,
-        roll : roll as f32,
-        pitch: tilt as f32,
-        yaw  : yaw as f32
+        x: pos.x,
+        y: pos.y,
+        z: pos.z,
+        roll,
+        pitch,
+        yaw,
     }
 }
+

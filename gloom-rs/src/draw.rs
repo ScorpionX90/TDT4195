@@ -1,3 +1,5 @@
+use libc::printf;
+
 use crate::shader::Shader;
 use crate::scene_graph::{ SceneNode };
 
@@ -229,8 +231,10 @@ impl World {
                 draw_scene(&self.nodes.get_mut(&Nodes::HeliDoor).unwrap()[self.player.node_index], &transform_thus_far, glm::identity(), &shader, elapsed);
             }
 
-            if transform.y <= -1000.0f32 {
+            if transform.y <= -100.0f32 {
                 self.anim_ctxs.remove(i);
+                self.nodes.get_mut(&Nodes::HeliDoor).unwrap().remove(0);
+                println!("Deleted door object");
             } else {
                 i += 1;
             }
