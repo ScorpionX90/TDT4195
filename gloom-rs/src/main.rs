@@ -90,7 +90,7 @@ fn main() {
             println!("GLSL\t: {}", util::get_gl_string(gl::SHADING_LANGUAGE_VERSION));
         }
 
-        let mut world = draw::World::new(30.0, glm::perspective(
+        let mut world = draw::World::new(300.0, glm::perspective(
             window_aspect_ratio,
             120.0f32,
             1.0f32,

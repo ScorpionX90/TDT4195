@@ -114,7 +114,7 @@ impl World {
     }
 
     fn setup_scene_graph(meshes: &HashMap<Nodes, Mesh>) -> HashMap<Nodes, Vec<ManuallyDrop<Pin<Box<SceneNode>>>>> {
-        let num_helicopters = 5;
+        let num_helicopters = 6;
         let mut nodes: HashMap<Nodes, Vec<ManuallyDrop<Pin<Box<SceneNode>>>>> = HashMap::new();
 
         nodes.insert(Nodes::SceneRoot, vec![SceneNode::new()]);
