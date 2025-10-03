@@ -183,15 +183,16 @@ impl World {
 
         // update all helicopter positions
         for i in 0..self.nodes[&Nodes::HeliRoot].len() {
-            if i == self.player.node_index { continue; }
-            let iter_heli_heading = toolbox::simple_heading_animation(elapsed + i as f32 * 1.6f32);
-            let heli_root = &mut self.nodes.get_mut(&Nodes::HeliRoot).unwrap()[i];
-            heli_root.position.x = iter_heli_heading.x;
-            heli_root.position.y = 15.0;
-            heli_root.position.z = iter_heli_heading.z;
-            heli_root.rotation.z = iter_heli_heading.roll;
-            heli_root.rotation.y = iter_heli_heading.yaw;
-            heli_root.rotation.x = iter_heli_heading.pitch;
+            if i != self.player.node_index {
+                let iter_heli_heading = toolbox::simple_heading_animation(elapsed + i as f32 * 1.6f32);
+                let heli_root = &mut self.nodes.get_mut(&Nodes::HeliRoot).unwrap()[i];
+                heli_root.position.x = iter_heli_heading.x;
+                heli_root.position.y = 15.0;
+                heli_root.position.z = iter_heli_heading.z;
+                heli_root.rotation.z = iter_heli_heading.roll;
+                heli_root.rotation.y = iter_heli_heading.yaw;
+                heli_root.rotation.x = iter_heli_heading.pitch;
+            }
 
             self.nodes.get_mut(&Nodes::HeliMainRotor).unwrap()[i].rotation.y = elapsed * rotor_speed;
             self.nodes.get_mut(&Nodes::HeliTailRotor).unwrap()[i].rotation.x = elapsed * rotor_speed;

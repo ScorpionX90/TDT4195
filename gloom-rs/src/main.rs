@@ -135,7 +135,11 @@ fn main() {
                 }
             }
 
-            let translation_speed = 1.0;
+            let camera_speed = 80.0;
+            let player_move_speed = 60.0;
+            let player_turn_speed = 1.0;
+
+            let player_forward = world.get_player_node().forward();
 
             // Handle keyboard input
             if let Ok(keys) = pressed_keys.lock() {
@@ -161,17 +165,37 @@ fn main() {
                         }
 
                         VirtualKeyCode::Right => { 
-                            world.camera.position -= world.camera.right() * translation_speed;
+                            world.camera.position -= world.camera.right() * camera_speed * delta_time;
                         }
                         VirtualKeyCode::Left => { 
-                            world.camera.position += world.camera.right() * translation_speed;
+                            world.camera.position += world.camera.right() * camera_speed * delta_time;
                         }
                         VirtualKeyCode::Down => { 
-                            world.camera.position.y -= translation_speed;
+                            world.camera.position.y -= camera_speed * delta_time;
                         }
                         VirtualKeyCode::Up => { 
-                            world.camera.position.y += translation_speed;
+                            world.camera.position.y += camera_speed * delta_time;
                         }
+
+                        VirtualKeyCode::W => { 
+                            world.get_player_node_mut().position += player_forward * player_move_speed * delta_time;
+                        }
+                        VirtualKeyCode::A => { 
+                            world.get_player_node_mut().rotation.y += player_turn_speed * delta_time;
+                        }
+                        VirtualKeyCode::S => { 
+                            world.get_player_node_mut().position -= player_forward * player_move_speed * delta_time;
+                        }
+                        VirtualKeyCode::D => { 
+                            world.get_player_node_mut().rotation.y -= player_turn_speed * delta_time;
+                        }
+                        VirtualKeyCode::Space => {
+                            world.get_player_node_mut().position.y += player_move_speed * delta_time;
+                        }
+                        VirtualKeyCode::LShift => {
+                            world.get_player_node_mut().position.y -= player_move_speed * delta_time;
+                        }
+
                         _ => { }
                     }
                 }
