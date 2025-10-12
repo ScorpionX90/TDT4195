@@ -6,8 +6,14 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = import nixpkgs {
           inherit system;
@@ -15,13 +21,13 @@
 
         nativeBuildInputs = with pkgs; [
           git
-	  pkg-config
+          pkg-config
           fontconfig
           freetype
           rustc
           cmake
           gnumake
-	  gcc
+          gcc
           cargo
           xorg.libXcursor
           xorg.libXrandr
@@ -34,10 +40,12 @@
           mesa
           wayland
           libglibutil
+          zip
         ];
 
         fontconfigPcPath = "${pkgs.fontconfig.dev}/lib/pkgconfig";
-      in {
+      in
+      {
         devShells.default = pkgs.mkShell {
           name = "rust-fontconfig-shell";
           packages = nativeBuildInputs;
@@ -49,6 +57,6 @@
             echo "LD_LIBRARY_PATH set for runtime OpenGL/GUI deps"
           '';
         };
-      });
+      }
+    );
 }
-
