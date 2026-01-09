@@ -75,6 +75,8 @@ fn main() {
 
         // Set up openGL
         unsafe {
+
+            
             gl::Enable(gl::DEPTH_TEST);
             gl::DepthFunc(gl::LESS);
             gl::Enable(gl::CULL_FACE);
@@ -84,6 +86,7 @@ fn main() {
             gl::Enable(gl::DEBUG_OUTPUT_SYNCHRONOUS);
             gl::DebugMessageCallback(Some(util::debug_callback), ptr::null());
 
+            
             // Print some diagnostics
             println!("{}: {}", util::get_gl_string(gl::VENDOR), util::get_gl_string(gl::RENDERER));
             println!("OpenGL\t: {}", util::get_gl_string(gl::VERSION));
